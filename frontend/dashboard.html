@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Dashboard — SalesFlow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#080810;--surface:#0f0f1a;--surface2:#141422;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.12);
+  --accent:#7c6dfa;--accent2:#e8632a;
+  --text:#e8e6f0;--muted:#6b6880;--green:#3ddc97;
+  --sidebar-w:240px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;display:flex;min-height:100vh;}
+
+/* ── SIDEBAR ── */
+.sidebar{
+  width:var(--sidebar-w);flex-shrink:0;
+  background:var(--surface);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;
+  position:fixed;top:0;left:0;height:100vh;z-index:50;
+  overflow-y:auto;
+}
+.sidebar-top{padding:1.5rem 1.25rem 1rem;}
+.logo{
+  font-family:'Syne',sans-serif;font-weight:800;font-size:1.2rem;
+  letter-spacing:-0.02em;padding:0 0.5rem;margin-bottom:1.5rem;
+}
+.logo span{color:var(--accent);}
+
+.nav-section{margin-bottom:0.25rem;}
+.nav-section-label{
+  font-family:'DM Mono',monospace;font-size:0.65rem;
+  letter-spacing:0.12em;color:var(--muted);
+  text-transform:uppercase;padding:0.5rem 0.75rem;
+}
+.nav-item{
+  display:flex;align-items:center;gap:10px;
+  padding:0.6rem 0.75rem;border-radius:8px;
+  cursor:pointer;transition:background .15s;
+  font-size:0.88rem;color:var(--muted);
+  text-decoration:none;margin:1px 0;
+}
+.nav-item:hover{background:rgba(255,255,255,0.04);color:var(--text);}
+.nav-item.active{background:rgba(124,109,250,0.1);color:var(--text);}
+.nav-item.active .nav-icon{color:var(--accent);}
+.nav-icon{
+  width:16px;height:16px;flex-shrink:0;color:var(--muted);
+}
+.nav-item.active .nav-icon{color:var(--accent);}
+
+.nav-badge{
+  margin-left:auto;background:rgba(124,109,250,0.15);
+  color:var(--accent);border-radius:10px;
+  padding:1px 7px;font-size:0.7rem;
+  font-family:'DM Mono',monospace;
+}
+.nav-badge.green{background:rgba(61,220,151,0.1);color:var(--green);}
+.nav-badge.orange{background:rgba(232,99,42,0.1);color:var(--accent2);}
+
+.plan-chip{
+  margin:1rem 1.25rem;background:rgba(124,109,250,0.06);
+  border:1px solid rgba(124,109,250,0.15);
+  border-radius:8px;padding:0.75rem 1rem;
+}
+.plan-chip-label{font-size:0.7rem;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.05em;}
+.plan-chip-name{font-size:0.9rem;font-weight:500;color:var(--text);margin-top:2px;}
+.plan-chip-upgrade{
+  display:block;margin-top:0.5rem;
+  font-size:0.75rem;color:var(--accent);cursor:pointer;text-decoration:none;
+}
+
+.sidebar-user{
+  margin-top:auto;border-top:1px solid var(--border);
+  padding:1rem 1.25rem;display:flex;align-items:center;gap:10px;
+}
+.user-avatar{
+  width:32px;height:32px;border-radius:50%;
+  background:rgba(124,109,250,0.2);
+  display:flex;align-items:center;justify-content:center;
+  font-size:0.75rem;font-weight:500;color:var(--accent);
+  flex-shrink:0;overflow:hidden;
+}
+.user-avatar img{width:100%;height:100%;object-fit:cover;}
+.user-name{font-size:0.85rem;font-weight:500;color:var(--text);}
+.user-plan{font-size:0.72rem;color:var(--muted);}
+.logout-btn{
+  margin-left:auto;background:transparent;border:none;
+  color:var(--muted);cursor:pointer;padding:4px;
+  transition:color .15s;
+}
+.logout-btn:hover{color:var(--text);}
+
+/* ── MAIN ── */
+.main{
+  margin-left:var(--sidebar-w);flex:1;
+  display:flex;flex-direction:column;min-height:100vh;
+}
+
+/* TOPBAR */
+.topbar{
+  border-bottom:1px solid var(--border);
+  padding:1rem 2rem;
+  display:flex;align-items:center;justify-content:space-between;
+  background:rgba(8,8,16,0.9);backdrop-filter:blur(10px);
+  position:sticky;top:0;z-index:40;
+}
+.topbar-title{
+  font-family:'Syne',sans-serif;font-weight:700;font-size:1.1rem;
+}
+.topbar-right{display:flex;align-items:center;gap:1rem;}
+.topbar-date{font-size:0.8rem;color:var(--muted);font-family:'DM Mono',monospace;}
+
+/* PAGE */
+.page{padding:2rem;}
+
+/* STATS GRID */
+.stats-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
+  gap:1rem;margin-bottom:2rem;
+}
+.stat-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:12px;padding:1.25rem;
+  position:relative;overflow:hidden;
+  transition:border-color .2s;
+}
+.stat-card:hover{border-color:var(--border2);}
+.stat-card-label{
+  font-size:0.75rem;color:var(--muted);
+  font-family:'DM Mono',monospace;letter-spacing:0.05em;
+  margin-bottom:0.75rem;
+}
+.stat-card-value{
+  font-family:'Syne',sans-serif;font-weight:800;
+  font-size:2rem;letter-spacing:-0.03em;
+  color:var(--text);
+}
+.stat-card-sub{font-size:0.78rem;color:var(--muted);margin-top:0.25rem;}
+.stat-card-accent{position:absolute;top:0;left:0;right:0;height:2px;}
+.stat-card-accent.purple{background:var(--accent);}
+.stat-card-accent.green{background:var(--green);}
+.stat-card-accent.orange{background:var(--accent2);}
+.stat-card-accent.blue{background:#4fa8f5;}
+
+/* PANELS */
+.panels-grid{display:grid;grid-template-columns:2fr 1fr;gap:1.5rem;}
+
+.panel{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:12px;overflow:hidden;
+}
+.panel-header{
+  padding:1.25rem 1.5rem;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.panel-title{font-weight:500;font-size:0.95rem;}
+.panel-action{
+  font-size:0.8rem;color:var(--accent);cursor:pointer;
+  background:transparent;border:none;font-family:'DM Sans',sans-serif;
+}
+.panel-body{padding:1.5rem;}
+
+/* ACTIVITY */
+.activity-list{list-style:none;display:flex;flex-direction:column;gap:0;}
+.activity-item{
+  display:flex;align-items:flex-start;gap:12px;
+  padding:0.75rem 0;border-bottom:1px solid var(--border);
+}
+.activity-item:last-child{border-bottom:none;}
+.activity-dot{
+  width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:6px;
+}
+.activity-dot.sent{background:var(--accent);}
+.activity-dot.reply{background:var(--green);}
+.activity-dot.hot{background:var(--accent2);}
+.activity-dot.meeting{background:#4fa8f5;}
+.activity-text{font-size:0.85rem;color:var(--muted);line-height:1.5;}
+.activity-text strong{color:var(--text);}
+.activity-time{font-size:0.72rem;color:var(--muted);font-family:'DM Mono',monospace;white-space:nowrap;margin-left:auto;margin-top:2px;}
+
+/* QUICK ACTIONS */
+.quick-actions{display:flex;flex-direction:column;gap:0.75rem;}
+.quick-btn{
+  width:100%;display:flex;align-items:center;gap:12px;
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:8px;padding:0.85rem 1rem;
+  cursor:pointer;transition:border-color .2s,background .15s;
+  text-align:left;font-family:'DM Sans',sans-serif;
+}
+.quick-btn:hover{border-color:var(--border2);background:rgba(255,255,255,0.03);}
+.quick-btn-icon{
+  width:32px;height:32px;border-radius:7px;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+.quick-btn-icon.purple{background:rgba(124,109,250,0.15);}
+.quick-btn-icon.green{background:rgba(61,220,151,0.1);}
+.quick-btn-icon.orange{background:rgba(232,99,42,0.1);}
+.quick-btn-icon.blue{background:rgba(79,168,245,0.1);}
+.quick-btn-label{font-size:0.88rem;color:var(--text);font-weight:500;}
+.quick-btn-sub{font-size:0.75rem;color:var(--muted);}
+.quick-btn-arrow{margin-left:auto;color:var(--muted);font-size:0.75rem;}
+
+/* CHANNELS STATUS */
+.channels-status{display:flex;flex-direction:column;gap:0.5rem;padding:0 1.5rem 1.5rem;}
+.ch-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0.75rem;border-radius:8px;background:var(--surface2);
+  border:1px solid var(--border);
+}
+.ch-left{display:flex;align-items:center;gap:10px;}
+.ch-icon{font-size:1rem;}
+.ch-name{font-size:0.85rem;font-weight:500;}
+.ch-status{font-size:0.75rem;color:var(--muted);}
+.ch-badge{
+  font-size:0.7rem;padding:3px 10px;border-radius:20px;
+  font-family:'DM Mono',monospace;
+}
+.ch-badge.connected{background:rgba(61,220,151,0.1);color:var(--green);}
+.ch-badge.locked{background:rgba(255,255,255,0.04);color:var(--muted);}
+.ch-badge.connect{background:rgba(124,109,250,0.1);color:var(--accent);cursor:pointer;}
+
+/* EMPTY STATE */
+.empty-state{
+  text-align:center;padding:3rem 1.5rem;color:var(--muted);
+}
+.empty-state h3{font-size:0.95rem;color:var(--text);margin-bottom:0.5rem;}
+.empty-state p{font-size:0.85rem;line-height:1.6;}
+.empty-cta{
+  margin-top:1rem;background:var(--accent);color:#fff;
+  border:none;padding:0.6rem 1.5rem;border-radius:6px;
+  font-size:0.85rem;cursor:pointer;font-family:'DM Sans',sans-serif;
+}
+
+@media(max-width:900px){
+  .panels-grid{grid-template-columns:1fr;}
+}
+@media(max-width:768px){
+  .sidebar{transform:translateX(-100%);}
+  .main{margin-left:0;}
+  .page{padding:1rem;}
+  .stats-grid{grid-template-columns:repeat(2,1fr);}
+}
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-top">
+    <div class="logo">Sales<span>Flow</span></div>
+
+    <div class="nav-section">
+      <div class="nav-section-label">Main Menu</div>
+      <a class="nav-item" href="/dashboard.html">⬛ Dashboard</a>
+      <a class="nav-item" href="/leads.html">◉ Leads</a>
+      <a class="nav-item" href="/campaigns.html">✉ Campaigns</a>
+      <a class="nav-item" href="/inbox.html">💬 Replies</a>
+      <a class="nav-item" href="/meetings.html">📅 Meetings</a>
+     
+    </div>
+
+    <div class="nav-section">
+    <div class="nav-section-label">Account</div>
+    <a class="nav-item" href="/profile.html">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M1 14s1-4 7-4 7 4 7 4"/></svg>
+        Profile
+    </a>
+      <a class="nav-item" href="/billing.html">
+  <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+    <rect x="1" y="3" width="14" height="10" rx="1"/>
+    <path d="M1 6h14"/>
+  </svg>
+  Billing
+</a>
+    </div>
+  </div>
+
+  <div class="plan-chip" id="planChip">
+    <div class="plan-chip-label">CURRENT PLAN</div>
+    <div class="plan-chip-name" id="planName">Free</div>
+    <a class="plan-chip-upgrade" href="#">Upgrade to Starter →</a>
+  </div>
+
+  <div class="sidebar-user">
+    <div class="user-avatar" id="userAvatar">?</div>
+    <div>
+      <div class="user-name" id="userName">Loading...</div>
+      <div class="user-plan" id="userEmail">—</div>
+    </div>
+    <button class="logout-btn" onclick="logout()" title="Sign out">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2H2a1 1 0 00-1 1v10a1 1 0 001 1h4M11 11l4-4-4-4M15 8H6"/></svg>
+    </button>
+  </div>
+</aside>
+
+<!-- MAIN CONTENT -->
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title">Dashboard</div>
+    <div class="topbar-right">
+      <div class="topbar-date" id="todayDate"></div>
+    </div>
+  </div>
+
+  <div class="page">
+
+    <!-- STATS -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-card-accent purple"></div>
+        <div class="stat-card-label">TOTAL LEADS</div>
+        <div class="stat-card-value" id="statLeads">—</div>
+        <div class="stat-card-sub">in your database</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-accent blue"></div>
+        <div class="stat-card-label">EMAILS SENT</div>
+        <div class="stat-card-value" id="statEmails">—</div>
+        <div class="stat-card-sub">this month</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-accent green"></div>
+        <div class="stat-card-label">REPLIES</div>
+        <div class="stat-card-value" id="statReplies">—</div>
+        <div class="stat-card-sub">received</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-accent orange"></div>
+        <div class="stat-card-label">HOT LEADS</div>
+        <div class="stat-card-value" id="statHot">—</div>
+        <div class="stat-card-sub">showing interest</div>
+      </div>
+      <div id="chatWidget" style="position:fixed;bottom:24px;right:24px;width:360px;z-index:9999;">
+  <div id="chatBox" style="display:none;background:#0f0f1a;border:1px solid rgba(255,255,255,0.1);border-radius:12px;overflow:hidden;flex-direction:column;height:480px;box-shadow: 0 10px 40px rgba(0,0,0,0.5);">
+    <div style="padding:14px 16px;border-bottom:1px solid rgba(255,255,255,0.07);font-family:Syne,sans-serif;font-weight:700;font-size:0.9rem;display:flex;align-items:center;justify-content:space-between;">
+      <div>SalesFlow AI <span style="font-size:0.72rem;color:#3ddc97;margin-left:8px;">● online</span></div>
+      <button onclick="document.getElementById('chatBox').style.display='none'" style="background:none;border:none;color:#6b6880;cursor:pointer;font-size:1.2rem;">×</button>
+    </div>
+    <div id="chatMessages" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;font-family:'DM Sans',sans-serif;font-size:0.88rem;"></div>
+    <div style="padding:12px;border-top:1px solid rgba(255,255,255,0.07);display:flex;gap:8px;background:#0f0f1a;">
+      <input id="chatInput" type="text" placeholder="Ask me anything..." 
+        style="flex:1;background:#141422;border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:10px 14px;color:#e8e6f0;font-family:'DM Sans',sans-serif;font-size:0.88rem;outline:none;"
+        onkeydown="if(event.key==='Enter')sendChat()"/>
+      <button onclick="sendChat()" style="background:#7c6dfa;border:none;color:white;border-radius:8px;padding:10px 16px;cursor:pointer;">→</button>
+    </div>
+  </div>
+  <button id="chatToggle" onclick="toggleChat()"
+    style="margin-top:8px;float:right;background:#7c6dfa;border:none;color:white;width:52px;height:52px;border-radius:50%;font-size:1.3rem;cursor:pointer;box-shadow: 0 4px 15px rgba(124,109,250,0.3);">💬</button>
+</div>
+      <div class="stat-card">
+        <div class="stat-card-accent blue"></div>
+        <div class="stat-card-label">MEETINGS</div>
+        <div class="stat-card-value" id="statMeetings">—</div>
+        <div class="stat-card-sub">booked</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-accent purple"></div>
+        
+        <div class="stat-card-value" id="statCalls">—</div>
+        <div class="stat-card-sub">made</div>
+      </div>
+    </div>
+
+    <!-- PANELS -->
+    <div class="panels-grid">
+
+      <!-- Activity + Quick Actions -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Recent activity</span>
+          <button class="panel-action">View all</button>
+        </div>
+        <div class="panel-body">
+          <div class="empty-state" id="activityEmpty">
+            <h3>No activity yet</h3>
+            <p>Start by building your lead list and sending your first campaign email.</p>
+            <button class="empty-cta" onclick="window.location.href='#'">Find leads →</button>
+          </div>
+          <ul class="activity-list" id="activityList" style="display:none;">
+          </ul>
+        </div>
+      </div>
+
+      <!-- Right column -->
+      <div style="display:flex;flex-direction:column;gap:1.5rem;">
+
+        <!-- Quick Actions -->
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">Quick actions</span>
+          </div>
+          <div class="panel-body" style="padding:1rem;">
+            <div class="quick-actions">
+              <button class="quick-btn" onclick="window.location.href='#'">
+                <div class="quick-btn-icon purple">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#7c6dfa" stroke-width="1.5"><circle cx="8" cy="8" r="7"/><path d="M8 5v3l2 2"/></svg>
+                </div>
+                <div>
+                  <div class="quick-btn-label" onclick="window.location.href='leads.html';" style="cursor: pointer;">
+  Find leads
+</div>
+                  <div class="quick-btn-sub">Search 1M+ contacts</div>
+                </div>
+                <span class="quick-btn-arrow">→</span>
+              </button>
+              <button class="quick-btn" onclick="window.location.href='#'">
+                <div class="quick-btn-icon blue">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#4fa8f5" stroke-width="1.5"><path d="M2 3h12a1 1 0 011 1v8a1 1 0 01-1 1H2a1 1 0 01-1-1V4a1 1 0 011-1z"/><path d="M1 4l7 5 7-5"/></svg>
+                </div>
+                <div>
+                  <div class="quick-btn-label" onclick="window.location.href='campaigns.html';" style="cursor: pointer;">
+  New campaign
+</div>
+                  <div class="quick-btn-sub">Send bulk emails</div>
+                </div>
+                <span class="quick-btn-arrow">→</span>
+              </button>
+             
+               
+               
+                <span class="quick-btn-arrow">→</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Channels status -->
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">Channel status</span>
+          </div>
+          <div class="channels-status">
+            <div class="ch-row">
+              <div class="ch-left">
+                <span class="ch-icon">✉</span>
+                <div>
+                  <div class="ch-name">Gmail</div>
+                  <div class="ch-status" id="gmailStatus">Checking...</div>
+                </div>
+              </div>
+              <span class="ch-badge connected" id="gmailBadge">Connected</span>
+            </div>
+           
+            
+              </div>
+              <span class="ch-badge locked">Locked</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const API = 'http://localhost:8000/api';
+const token = localStorage.getItem('sf_token');
+if (!token) window.location.href = '/login.html';
+
+// Date
+const d = new Date();
+document.getElementById('todayDate').textContent =
+  d.toLocaleDateString('en-IN', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+
+
+// Auto-highlight active nav item
+document.querySelectorAll('.nav-item[href]').forEach(function(a) {
+  var href = a.getAttribute('href');
+  if (href && window.location.pathname.includes(href.replace('/', ''))) {
+    a.classList.add('active');
+  }
+});  
+
+
+async function apiFetch(path) {
+  const r = await fetch(API + path, { headers: { 'Authorization': `Bearer ${token}` } });
+  if (r.status === 401) { logout(); return null; }
+  return r.json();
+}
+
+async function loadUser() {
+  const user = await apiFetch('/auth/me');
+  if (!user) return;
+  if (!user.onboarding_complete) { window.location.href = '/onboarding.html'; return; }
+
+  document.getElementById('userName').textContent = user.full_name || user.email;
+  document.getElementById('userEmail').textContent = user.email;
+  document.getElementById('planName').textContent =
+    user.plan.charAt(0).toUpperCase() + user.plan.slice(1);
+
+  // Avatar
+  const av = document.getElementById('userAvatar');
+  if (user.avatar_url) {
+    av.innerHTML = `<img src="${user.avatar_url}" alt="avatar"/>`;
+  } else {
+    av.textContent = (user.full_name || user.email)[0].toUpperCase();
+  }
+
+  // Gmail
+  document.getElementById('gmailStatus').textContent =
+    user.gmail_connected ? user.email : 'Not connected';
+  if (!user.gmail_connected) {
+    document.getElementById('gmailBadge').className = 'ch-badge connect';
+    document.getElementById('gmailBadge').textContent = 'Connect';
+  }
+}
+
+async function loadStats() {
+  const stats = await apiFetch('/dashboard/stats');
+  if (!stats) return;
+  document.getElementById('statLeads').textContent   = stats.leads_total.toLocaleString('en-IN');
+  document.getElementById('statEmails').textContent  = stats.emails_sent.toLocaleString('en-IN');
+  document.getElementById('statReplies').textContent = stats.replies_received.toLocaleString('en-IN');
+  document.getElementById('statHot').textContent     = stats.hot_leads.toLocaleString('en-IN');
+  document.getElementById('statMeetings').textContent = stats.meetings_booked.toLocaleString('en-IN');
+  document.getElementById('statCalls').textContent   = stats.calls_made.toLocaleString('en-IN');
+}
+
+function logout() {
+  localStorage.removeItem('sf_token');
+  window.location.href = '/login.html';
+}
+
+loadUser();
+loadStats();
+document.querySelectorAll('.nav-item').forEach(function(a) {
+  if (a.href && window.location.pathname.endsWith(a.getAttribute('href').replace('/', ''))) {
+    a.classList.add('active');
+  }
+});
+
+const sfSessionId = 'session_' + Date.now();
+
+function addMsg(role, text) {
+  const d = document.getElementById('chatMessages');
+  const m = document.createElement('div');
+  m.style.cssText = role === 'user' 
+    ? 'align-self:flex-end;background:#7c6dfa;color:white;padding:9px 13px;border-radius:12px 12px 2px 12px;max-width:80%;line-height:1.5;' 
+    : 'align-self:flex-start;background:#141422;color:#e8e6f0;padding:9px 13px;border-radius:12px 12px 12px 2px;max-width:85%;line-height:1.5;white-space:pre-wrap;border:1px solid rgba(255,255,255,0.05);';
+  m.textContent = text;
+  d.appendChild(m);
+  d.scrollTop = d.scrollHeight;
+}
+
+function toggleChat() {
+  const box = document.getElementById('chatBox');
+  const isHidden = box.style.display === 'none';
+  box.style.display = isHidden ? 'flex' : 'none';
+  
+  if (isHidden && document.getElementById('chatMessages').children.length === 0) {
+    addMsg('assistant', "Hey! I'm your SalesFlow AI. I've analyzed your company profile and goals. Ask me to write a follow-up, categorize a reply, or improve your email template.");
+  }
+}
+
+async function sendChat() {
+  const inp = document.getElementById('chatInput');
+  const msg = inp.value.trim();
+  if (!msg) return;
+  
+  inp.value = '';
+  addMsg('user', msg);
+  
+  // Loading state
+  const loadingDiv = document.createElement('div');
+  loadingDiv.textContent = '...';
+  loadingDiv.style.cssText = 'align-self:flex-start;color:#6b6880;padding:5px 13px;font-style:italic;';
+  document.getElementById('chatMessages').appendChild(loadingDiv);
+
+  try {
+    const r = await fetch(API + '/chat/message', { // Using your existing API constant
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + token // Using your existing token constant
+      },
+      body: JSON.stringify({ message: msg, session_id: sfSessionId })
+    });
+    
+    const data = await r.json();
+    loadingDiv.remove();
+    addMsg('assistant', data.reply || "I'm sorry, I couldn't process that.");
+  } catch(e) {
+    loadingDiv.textContent = 'Error connecting to AI. Please try again.';
+  }
+}
+</script>
+</body>
+</html>

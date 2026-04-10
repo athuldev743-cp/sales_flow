@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Billing — SalesFlow</title>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#080810; --surface:#0f0f1a; --surface2:#141422;
+  --border:rgba(255,255,255,0.07); --border2:rgba(255,255,255,0.12);
+  --accent:#7c6dfa; --accent2:#e8632a;
+  --text:#e8e6f0; --muted:#6b6880; --green:#3ddc97; --red:#f05a5a;
+  --sidebar:240px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;display:flex;min-height:100vh;}
+
+/* ── Sidebar ─────────────────────────────────────────────────────── */
+.sidebar{width:var(--sidebar);flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;padding:1.5rem 1.25rem;}
+.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:1.2rem;letter-spacing:-0.02em;margin-bottom:1.5rem;}
+.logo span{color:var(--accent);}
+.nav-item{display:flex;align-items:center;gap:10px;padding:0.6rem 0.75rem;border-radius:8px;cursor:pointer;font-size:0.88rem;color:var(--muted);text-decoration:none;margin:1px 0;transition:all .15s;}
+.nav-item:hover{background:rgba(255,255,255,0.04);color:var(--text);}
+.nav-item.active{background:rgba(124,109,250,0.1);color:var(--text);}
+
+/* ── Layout ──────────────────────────────────────────────────────── */
+.main{margin-left:var(--sidebar);flex:1;padding:2rem;max-width:1100px;display:flex;flex-direction:column;gap:2rem;}
+.header{margin-bottom:0.5rem;}
+.header h1{font-family:'Syne',sans-serif;font-size:1.8rem;margin-bottom:0.4rem;}
+.header p{color:var(--muted);font-size:0.9rem;}
+
+/* ── Section ─────────────────────────────────────────────────────── */
+.section-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1rem;}
+.section-title{font-family:'Syne',sans-serif;font-size:1rem;margin-bottom:2px;}
+.section-sub{color:var(--muted);font-size:0.8rem;}
+
+/* ── Plan banner (current plan) ──────────────────────────────────── */
+.plan-banner{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1.5rem;}
+.plan-name{font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:800;margin-bottom:0.3rem;display:flex;align-items:center;gap:10px;}
+.plan-desc{color:var(--muted);font-size:0.84rem;margin-bottom:0.5rem;}
+.plan-expires{font-size:0.8rem;color:var(--muted);}
+.plan-expires span{color:var(--text);}
+
+/* ── Plan badge ──────────────────────────────────────────────────── */
+.plan-badge{display:inline-flex;align-items:center;gap:6px;font-family:'DM Mono',monospace;font-size:0.65rem;letter-spacing:1px;padding:3px 8px;border-radius:4px;text-transform:uppercase;}
+.plan-badge-dot{width:6px;height:6px;border-radius:50%;}
+.plan-badge.free{background:rgba(107,104,128,0.15);color:var(--muted);}
+.plan-badge.free .plan-badge-dot{background:var(--muted);}
+.plan-badge.pro{background:rgba(124,109,250,0.15);color:var(--accent);}
+.plan-badge.pro .plan-badge-dot{background:var(--accent);}
+.plan-badge.premium{background:rgba(232,99,42,0.15);color:var(--accent2);}
+.plan-badge.premium .plan-badge-dot{background:var(--accent2);}
+
+/* ── Usage meters ────────────────────────────────────────────────── */
+.usage-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:0.75rem;margin-top:1.25rem;}
+.usage-card{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:0.9rem;}
+.usage-label{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;font-size:0.8rem;color:var(--muted);}
+.usage-val{font-family:'DM Mono',monospace;font-size:1.1rem;font-weight:700;margin-bottom:8px;}
+.usage-bar{height:4px;background:var(--border2);border-radius:2px;overflow:hidden;}
+.usage-fill{height:100%;border-radius:2px;transition:width 0.4s;}
+.usage-fill.green{background:var(--green);}
+.usage-fill.amber{background:#f0a030;}
+.usage-fill.red{background:var(--red);}
+.usage-fill.accent{background:var(--accent);}
+.mono{font-family:'DM Mono',monospace;}
+
+/* ── Credits ─────────────────────────────────────────────────────── */
+.credits-wrap{display:flex;gap:1.5rem;align-items:flex-start;flex-wrap:wrap;}
+.credits-num{font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;color:var(--green);}
+.credits-label{font-size:0.76rem;color:var(--muted);}
+.credits-topup{display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.3rem;}
+.topup-pill{padding:0.35rem 0.75rem;border-radius:6px;border:1px solid var(--border2);background:var(--surface2);font-size:0.82rem;cursor:pointer;transition:.15s;}
+.topup-pill:hover,.topup-pill.selected{border-color:var(--accent);color:var(--accent);}
+
+/* ── Pricing grid ────────────────────────────────────────────────── */
+.pricing-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.25rem;}
+.pricing-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1.75rem;display:flex;flex-direction:column;gap:0;position:relative;transition:.2s;}
+.pricing-card.popular{border-color:var(--accent2);}
+.pricing-card.current{border-color:var(--accent);}
+.popular-tag{position:absolute;top:1rem;right:1rem;background:rgba(232,99,42,0.12);color:var(--accent2);font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:1px;padding:3px 7px;border-radius:4px;}
+.current-tag{position:absolute;top:1rem;right:1rem;background:rgba(61,220,151,0.1);color:var(--green);font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:1px;padding:3px 7px;border-radius:4px;}
+.tier-name{font-family:'Syne',sans-serif;font-weight:800;font-size:1.05rem;margin-top:8px;}
+.tier-price{display:flex;align-items:baseline;gap:4px;margin:1rem 0 0.5rem;}
+.tier-price-num{font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;}
+.tier-price-period{font-size:0.8rem;color:var(--muted);}
+.tier-price-note{font-size:0.76rem;margin-bottom:0.75rem;}
+.tier-divider{border:none;border-top:1px solid var(--border);margin:1rem 0;}
+.tier-features{list-style:none;margin-bottom:1.5rem;flex:1;}
+.tier-features li{font-size:0.83rem;padding:0.3rem 0;display:flex;align-items:center;gap:8px;}
+.tier-features li.yes::before{content:'✓';color:var(--green);font-weight:bold;}
+.tier-features li.no{color:var(--muted);}
+.tier-features li.no::before{content:'×';color:var(--muted);}
+
+/* ── Cost table ──────────────────────────────────────────────────── */
+.cost-table{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+.cost-row{display:flex;justify-content:space-between;align-items:center;padding:0.9rem 1.25rem;border-bottom:1px solid var(--border);}
+.cost-row:last-child{border-bottom:none;}
+.cost-row.total{background:rgba(124,109,250,0.05);}
+.cost-label{display:flex;align-items:center;gap:12px;font-size:0.85rem;color:var(--muted);}
+.cost-icon{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:0.65rem;font-weight:700;}
+.cost-icon.server{background:rgba(124,109,250,0.15);color:var(--accent);}
+.cost-icon.ai{background:rgba(61,220,151,0.12);color:var(--green);}
+.cost-icon.margin{background:rgba(232,99,42,0.12);color:var(--accent2);}
+.cost-icon.tax{background:rgba(107,104,128,0.15);color:var(--muted);}
+.cost-amt{font-family:'DM Mono',monospace;font-size:0.88rem;}
+.cost-amt.accent{color:var(--accent);}
+
+/* ── Payment method ──────────────────────────────────────────────── */
+.pay-method{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.25rem;}
+.card-display{display:flex;align-items:center;gap:1rem;}
+.card-icon{background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:0.4rem 0.65rem;font-family:'DM Mono',monospace;font-size:0.7rem;}
+.card-info{flex:1;}
+.card-number{font-family:'DM Mono',monospace;font-size:0.88rem;}
+.card-sub{font-size:0.76rem;color:var(--muted);}
+.no-card{display:flex;align-items:center;gap:1rem;flex-wrap:wrap;}
+
+/* ── Invoice table ───────────────────────────────────────────────── */
+.inv-table{width:100%;border-collapse:collapse;font-size:0.84rem;}
+.inv-table th{text-align:left;padding:0.75rem 1rem;color:var(--muted);font-weight:500;border-bottom:1px solid var(--border);font-size:0.76rem;}
+.inv-table td{padding:0.75rem 1rem;border-bottom:1px solid var(--border);}
+.inv-table tr:last-child td{border-bottom:none;}
+.inv-status{font-family:'DM Mono',monospace;font-size:0.65rem;padding:2px 6px;border-radius:4px;}
+.inv-status.paid{background:rgba(61,220,151,0.1);color:var(--green);}
+.inv-status.pending{background:rgba(240,160,48,0.1);color:#f0a030;}
+.inv-status.failed{background:rgba(240,90,90,0.1);color:var(--red);}
+
+/* ── Danger zone ─────────────────────────────────────────────────── */
+.danger-zone{background:rgba(240,90,90,0.05);border:1px solid rgba(240,90,90,0.2);border-radius:12px;padding:1.25rem;}
+.danger-zone-title{font-family:'Syne',sans-serif;font-size:0.95rem;color:var(--red);margin-bottom:0.4rem;}
+.danger-zone-desc{font-size:0.82rem;color:var(--muted);margin-bottom:1rem;}
+
+/* ── Buttons ─────────────────────────────────────────────────────── */
+.btn{display:inline-flex;align-items:center;justify-content:center;padding:0.6rem 1.1rem;border-radius:8px;border:none;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;font-size:0.87rem;transition:.15s;text-decoration:none;}
+.btn:disabled{opacity:.45;cursor:default;}
+.btn-primary{background:var(--accent);color:#fff;}
+.btn-primary:hover:not(:disabled){background:#6b5ee0;}
+.btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border2);}
+.btn-secondary:hover:not(:disabled){background:var(--border2);}
+.btn-danger{background:rgba(240,90,90,0.1);color:var(--red);border:1px solid rgba(240,90,90,0.25);}
+.btn-danger:hover:not(:disabled){background:rgba(240,90,90,0.2);}
+.btn-block{width:100%;}
+.btn-sm{padding:0.4rem 0.75rem;font-size:0.8rem;}
+
+/* ── Loading spinner ─────────────────────────────────────────────── */
+#loadingState{display:none;align-items:center;gap:8px;color:var(--muted);font-size:0.84rem;margin-bottom:1rem;}
+.spinner{width:14px;height:14px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="logo">Sales<span>Flow</span></div>
+  <a class="nav-item" href="/dashboard.html">⬛ Dashboard</a>
+  <a class="nav-item" href="/leads.html">◉ Leads</a>
+  <a class="nav-item" href="/campaigns.html">✉ Campaigns</a>
+  <a class="nav-item" href="/inbox.html">💬 Replies</a>
+  <a class="nav-item" href="/meetings.html">📅 Meetings</a>
+  <a class="nav-item active" href="/billing.html">💳 Billing</a>
+  <a class="nav-item" href="/profile.html">⚙ Profile</a>
+</aside>
+
+<main class="main">
+  <div class="header">
+    <h1>Billing & Plans</h1>
+    <p>Manage your subscription and usage limits.</p>
+  </div>
+
+  <div id="loadingState"><div class="spinner"></div> Loading billing info…</div>
+  <div id="billingContent"></div>
+</main>
+
+<script>
+// ── Config ────────────────────────────────────────────────────────────────────
+const API     = 'http://localhost:8000/api';
+const token   = localStorage.getItem('sf_token');
+if (!token) location.href = '/login.html';
+
+const RZP_KEY = 'rzp_test_XXXXXXXXXXXX'; // ← replace with your live key in prod
+
+// ── Plan definitions (mirror backend PLAN_CONFIG) ─────────────────────────────
+const PLANS = {
+  free: {
+    name:'Free', price:0, period:'', badge:'free',
+    desc:'Try SalesFlow with no commitment. No card needed.',
+    features:[
+      {ok:true,  text:'50 leads max'},
+      {ok:true,  text:'10 emails / day'},
+      {ok:false, text:'AI auto-pilot (locked)'},
+      {ok:false, text:'Groq personalisation (locked)'},
+      {ok:true,  text:'7-day data retention'},
+    ],
+    popular:false,
+  },
+  pro: {
+    name:'Pro', price:1499, period:'/mo', badge:'pro',
+    desc:'Full platform access. Fixed monthly billing.',
+    features:[
+      {ok:true, text:'5,000 leads'},
+      {ok:true, text:'500 emails / day'},
+      {ok:true, text:'AI auto-pilot'},
+      {ok:true, text:'Groq personalisation'},
+      {ok:true, text:'Bulk campaigns'},
+      {ok:true, text:'Reply inbox & AI drafts'},
+      {ok:true, text:'90-day data retention'},
+    ],
+    popular:true,
+    razorpayPlanId:'plan_XXXXXX_pro',
+  },
+  premium: {
+    name:'Premium', price:1999, period:'/mo base', badge:'premium',
+    desc:'Card-on-file. Pay base + usage credits auto-debited.',
+    features:[
+      {ok:true, text:'1M+ leads (DB limit)'},
+      {ok:true, text:'Unlimited emails (Google limit)'},
+      {ok:true, text:'AI auto-pilot (priority Groq)'},
+      {ok:true, text:'Groq credits billed at cost'},
+      {ok:true, text:'Bulk campaigns unlimited'},
+      {ok:true, text:'Priority support'},
+      {ok:true, text:'Unlimited data retention'},
+    ],
+    popular:false,
+    razorpayPlanId:'plan_XXXXXX_premium',
+  },
+};
+
+const COST_BREAKDOWN = [
+  {icon:'SV', cls:'server', label:'DigitalOcean server + DB',   amt:'₹350'},
+  {icon:'AI', cls:'ai',     label:'Groq API (baseline)',         amt:'₹150'},
+  {icon:'%',  cls:'margin', label:'Platform margin & dev costs', amt:'₹999'},
+  {icon:'TX', cls:'tax',    label:'Payment gateway fee (2%)',    amt:'~₹20'},
+];
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+async function apiFetch(path, opts={}) {
+  try {
+    const r = await fetch(API + path, {
+      ...opts,
+      headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json',...(opts.headers||{})}
+    });
+    if (r.status === 401){location.href='/login.html';return null;}
+    if (!r.ok) return null;
+    return r.json();
+  } catch(e){return null;}
+}
+
+function toast(msg, type='info') {
+  document.getElementById('sf-toast')?.remove();
+  const cols={info:'var(--accent)',success:'var(--green)',warn:'var(--accent2)',danger:'var(--red)'};
+  const t=document.createElement('div');
+  t.id='sf-toast';
+  t.style.cssText=`position:fixed;bottom:1.5rem;right:1.5rem;z-index:9999;background:var(--surface2);border:1px solid ${cols[type]};color:var(--text);padding:0.75rem 1.1rem;border-radius:10px;font-size:0.84rem;max-width:300px;display:flex;align-items:center;gap:10px;`;
+  t.innerHTML=`<div style="width:8px;height:8px;border-radius:50%;background:${cols[type]};flex-shrink:0;"></div><span>${msg}</span>`;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(),4000);
+}
+
+function usagePct(used,limit){if(!limit||limit<=0)return 0;return Math.min(100,Math.round((used/limit)*100));}
+function fillClass(pct){if(pct>=90)return 'red';if(pct>=70)return 'amber';return 'green';}
+function fmtDate(iso){if(!iso)return '—';return new Date(iso).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});}
+function planBadgeHtml(key){const p=PLANS[key];return `<span class="plan-badge ${p.badge}"><span class="plan-badge-dot"></span>${p.name.toUpperCase()}</span>`;}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function render(billing) {
+  const plan     = billing.plan || 'free';
+  const usage    = billing.usage || {};
+  const invoices = billing.invoices || [];
+  const card     = billing.card || null;
+  const credits  = billing.credits || 0;
+  const expires  = billing.plan_expires || null;
+
+  const LIMITS = {
+    free:    {leads:50,   emails:10,  campaigns:1},
+    pro:     {leads:5000, emails:500, campaigns:20},
+    premium: {leads:0,    emails:0,   campaigns:0},
+  };
+  const lim = LIMITS[plan];
+  const lPct = lim.leads     ? usagePct(usage.leads||0,    lim.leads)     : 0;
+  const ePct = lim.emails    ? usagePct(usage.emails||0,   lim.emails)    : 0;
+  const cPct = lim.campaigns ? usagePct(usage.campaigns||0,lim.campaigns) : 0;
+
+  document.getElementById('billingContent').innerHTML = `
+
+    <!-- Current plan -->
+    <div>
+      <div class="section-hdr"><div><div class="section-title">Current plan</div></div></div>
+      <div class="plan-banner">
+        <div class="plan-meta">
+          <div class="plan-name">
+            ${PLANS[plan].name} ${planBadgeHtml(plan)}
+          </div>
+          <div class="plan-desc">${PLANS[plan].desc}</div>
+          ${expires?`<div class="plan-expires">Access until <span>${fmtDate(expires)}</span></div>`:''}
+
+          ${plan==='premium'?`
+          <div class="credits-wrap" style="margin-top:1rem;">
+            <div>
+              <div class="credits-num">₹${credits.toFixed(2)}</div>
+              <div class="credits-label">available credits</div>
+            </div>
+            <div style="flex:1;">
+              <div style="font-size:0.76rem;color:var(--muted);margin-bottom:0.5rem;">Top up credits</div>
+              <div class="credits-topup">
+                <div class="topup-pill" data-amt="200" onclick="selectTopup(this)">₹200</div>
+                <div class="topup-pill" data-amt="500" onclick="selectTopup(this)">₹500</div>
+                <div class="topup-pill" data-amt="1000" onclick="selectTopup(this)">₹1,000</div>
+                <div class="topup-pill" data-amt="2000" onclick="selectTopup(this)">₹2,000</div>
+              </div>
+              <button class="btn btn-primary btn-sm" style="margin-top:0.6rem;" id="topupBtn" onclick="topupCredits()" disabled>Add credits</button>
+            </div>
+          </div>`:''}
+
+          <div class="usage-grid">
+            ${plan!=='premium'?`
+            <div class="usage-card">
+              <div class="usage-label"><span>Leads</span><span class="mono" style="font-size:0.72rem;">${(usage.leads||0).toLocaleString('en-IN')} / ${lim.leads.toLocaleString('en-IN')}</span></div>
+              <div class="usage-val">${lPct}%</div>
+              <div class="usage-bar"><div class="usage-fill ${fillClass(lPct)}" style="width:${lPct}%;"></div></div>
+            </div>
+            <div class="usage-card">
+              <div class="usage-label"><span>Emails today</span><span class="mono" style="font-size:0.72rem;">${usage.emails||0} / ${lim.emails}</span></div>
+              <div class="usage-val">${ePct}%</div>
+              <div class="usage-bar"><div class="usage-fill ${fillClass(ePct)}" style="width:${ePct}%;"></div></div>
+            </div>
+            <div class="usage-card">
+              <div class="usage-label"><span>Campaigns</span><span class="mono" style="font-size:0.72rem;">${usage.campaigns||0} / ${lim.campaigns}</span></div>
+              <div class="usage-val">${cPct}%</div>
+              <div class="usage-bar"><div class="usage-fill ${fillClass(cPct)}" style="width:${cPct}%;"></div></div>
+            </div>`:`
+            <div class="usage-card">
+              <div class="usage-label"><span>Total leads</span></div>
+              <div class="usage-val">${(usage.leads||0).toLocaleString('en-IN')}</div>
+              <div class="usage-bar"><div class="usage-fill accent" style="width:100%;"></div></div>
+            </div>
+            <div class="usage-card">
+              <div class="usage-label"><span>Emails this month</span></div>
+              <div class="usage-val">${(usage.emails||0).toLocaleString('en-IN')}</div>
+              <div class="usage-bar"><div class="usage-fill accent" style="width:100%;"></div></div>
+            </div>
+            <div class="usage-card">
+              <div class="usage-label"><span>Groq AI calls</span></div>
+              <div class="usage-val">${(usage.groq_calls||0).toLocaleString('en-IN')}</div>
+              <div class="usage-bar"><div class="usage-fill accent" style="width:60%;"></div></div>
+            </div>`}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Plans -->
+    <div>
+      <div class="section-hdr">
+        <div>
+          <div class="section-title">Plans</div>
+          <div class="section-sub">All plans include GST. Prices in INR. Pay via Card, UPI, NetBanking, or Wallets.</div>
+        </div>
+      </div>
+      <div class="pricing-grid">
+        ${Object.entries(PLANS).map(([key,p])=>`
+        <div class="pricing-card ${p.popular?'popular':''} ${key===plan?'current':''}">
+          ${p.popular?'<div class="popular-tag">MOST POPULAR</div>':''}
+          ${key===plan?'<div class="current-tag">ACTIVE</div>':''}
+          <div>
+            ${planBadgeHtml(key)}
+            <div class="tier-name">${p.name}</div>
+          </div>
+          <div class="tier-price">
+            ${p.price===0
+              ?`<span class="tier-price-num">Free</span>`
+              :`<span style="font-size:0.9rem;color:var(--muted);">₹</span>
+                <span class="tier-price-num">${p.price.toLocaleString('en-IN')}</span>
+                <span class="tier-price-period">${p.period}</span>`
+            }
+          </div>
+          ${key==='premium'?`<div class="tier-price-note" style="color:var(--muted);">+ usage credits billed as used</div>`:''}
+          <hr class="tier-divider"/>
+          <ul class="tier-features">
+            ${p.features.map(f=>`<li class="${f.ok?'yes':'no'}">${f.text}</li>`).join('')}
+          </ul>
+          ${key===plan
+            ?`<button class="btn btn-secondary btn-block" disabled>Current plan</button>`
+            :key==='free'
+              ?`<button class="btn btn-secondary btn-block" onclick="downgradeFree()">Downgrade to Free</button>`
+              :`<button class="btn btn-primary btn-block" onclick="startCheckout('${key}')">${p.name==='Pro'?'Upgrade to Pro →':'Get Premium →'}</button>`
+          }
+        </div>`).join('')}
+      </div>
+    </div>
+
+    <!-- Cost breakdown -->
+    <div>
+      <div class="section-hdr">
+        <div>
+          <div class="section-title">Why we charge what we charge</div>
+          <div class="section-sub">Transparent breakdown of our Pro plan (₹1,499/mo)</div>
+        </div>
+      </div>
+      <div class="cost-table">
+        ${COST_BREAKDOWN.map(c=>`
+        <div class="cost-row">
+          <div class="cost-label"><div class="cost-icon ${c.cls}">${c.icon}</div>${c.label}</div>
+          <div class="cost-amt">${c.amt}</div>
+        </div>`).join('')}
+        <div class="cost-row total">
+          <div class="cost-label"><strong>Pro plan total</strong></div>
+          <div class="cost-amt accent">₹1,499 / month</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Payment method -->
+    <div>
+      <div class="section-hdr">
+        <div><div class="section-title">Payment method</div></div>
+        ${card?`<button class="btn btn-secondary btn-sm" onclick="changeCard()">Change card</button>`:''}
+      </div>
+      <div class="pay-method">
+        ${card?`
+        <div class="card-display">
+          <div class="card-icon">${card.network||'CARD'}</div>
+          <div class="card-info">
+            <div class="card-number">•••• •••• •••• ${card.last4||'****'}</div>
+            <div class="card-sub">${card.name||''} · Expires ${card.exp_month}/${card.exp_year}</div>
+          </div>
+          <button class="btn btn-danger btn-sm" onclick="removeCard()">Remove</button>
+        </div>`:`
+        <div class="no-card">
+          <span style="color:var(--muted);font-size:0.85rem;">No card saved. (Required for Premium plan)</span>
+          <button class="btn btn-primary btn-sm" onclick="addCard()">+ Add card</button>
+        </div>`}
+      </div>
+    </div>
+
+    <!-- Invoices -->
+    <div>
+      <div class="section-hdr"><div><div class="section-title">Invoice history</div></div></div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;">
+        ${invoices.length===0?`
+        <div style="text-align:center;padding:2rem;color:var(--muted);font-size:0.84rem;">No invoices yet.</div>`:`
+        <table class="inv-table">
+          <thead><tr><th>Date</th><th>Description</th><th>Amount</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+            ${invoices.map(inv=>`
+            <tr>
+              <td class="mono" style="font-size:0.79rem;">${fmtDate(inv.date)}</td>
+              <td>${inv.description||'SalesFlow plan'}</td>
+              <td class="mono">₹${(inv.amount||0).toLocaleString('en-IN')}</td>
+              <td><span class="inv-status ${inv.status}">${inv.status}</span></td>
+              <td style="text-align:right;">${inv.pdf_url?`<a href="${inv.pdf_url}" target="_blank" class="btn btn-secondary btn-sm">PDF</a>`:'—'}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>`}
+      </div>
+    </div>
+
+    <!-- Danger zone -->
+    ${plan!=='free'?`
+    <div>
+      <div class="danger-zone">
+        <div class="danger-zone-title">Cancel subscription</div>
+        <div class="danger-zone-desc">Cancelling stops future charges. You keep access until the current period ends. Your data is retained for 30 days after cancellation.</div>
+        <button class="btn btn-danger btn-sm" onclick="cancelPlan()">Cancel subscription</button>
+      </div>
+    </div>`:''}
+  `;
+}
+
+// ── Razorpay launcher ─────────────────────────────────────────────────────────
+// Razorpay automatically surfaces: Cards, UPI, NetBanking, Wallets, EMI, PayLater
+function launchRazorpay(amountPaise, description, onSuccess, orderId=null) {
+  const options = {
+    key:         RZP_KEY,
+    amount:      amountPaise,
+    currency:    'INR',
+    name:        'SalesFlow',
+    description: description,
+    order_id:    orderId,
+    prefill: {
+      name:  localStorage.getItem('sf_name')  || '',
+      email: localStorage.getItem('sf_email') || '',
+    },
+    theme:  {color: '#7c6dfa'},
+    handler: onSuccess,
+    modal:  {ondismiss: ()=>toast('Payment cancelled','warn')},
+    // Razorpay shows all enabled payment methods automatically
+    // You can restrict via: method: { upi: 1, card: 1, netbanking: 1, wallet: 1 }
+  };
+  new Razorpay(options).open();
+}
+
+// ── Checkout flow ─────────────────────────────────────────────────────────────
+async function startCheckout(planKey) {
+  const p = PLANS[planKey];
+  const order = await apiFetch('/billing/create-order', {
+    method:'POST',
+    body: JSON.stringify({plan: planKey, amount: p.price * 100})
+  });
+  if (!order) { toast('Demo: Razorpay checkout would open here','warn'); return; }
+
+  launchRazorpay(p.price * 100, `SalesFlow ${p.name} plan`, async (response) => {
+    const verify = await apiFetch('/billing/verify-payment', {
+      method:'POST',
+      body: JSON.stringify({
+        razorpay_order_id:   response.razorpay_order_id,
+        razorpay_payment_id: response.razorpay_payment_id,
+        razorpay_signature:  response.razorpay_signature,
+        plan: planKey
+      })
+    });
+    if (verify?.success) {
+      toast(`Upgraded to ${p.name}! 🎉`, 'success');
+      setTimeout(loadBilling, 1000);
+    } else {
+      toast('Payment verification failed. Contact support.','danger');
+    }
+  }, order.id);
+}
+
+// ── Credit top-up ─────────────────────────────────────────────────────────────
+let selectedTopup = 0;
+
+function selectTopup(el) {
+  document.querySelectorAll('.topup-pill').forEach(p=>p.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedTopup = parseInt(el.dataset.amt);
+  document.getElementById('topupBtn').disabled = false;
+}
+
+async function topupCredits() {
+  if (!selectedTopup) return;
+  const order = await apiFetch('/billing/topup/create-order', {
+    method:'POST',
+    body: JSON.stringify({amount: selectedTopup * 100})
+  });
+  if (!order) { toast('Could not create topup order','danger'); return; }
+
+  launchRazorpay(selectedTopup * 100, 'SalesFlow credit top-up', async (response) => {
+    const verify = await apiFetch('/billing/topup/verify', {
+      method:'POST',
+      body: JSON.stringify({
+        razorpay_order_id:   response.razorpay_order_id,
+        razorpay_payment_id: response.razorpay_payment_id,
+        razorpay_signature:  response.razorpay_signature,
+        plan: 'premium'
+      })
+    });
+    if (verify?.success) {
+      toast(`₹${selectedTopup} credits added`, 'success');
+      selectedTopup = 0;
+      loadBilling();
+    } else {
+      toast('Topup verification failed','danger');
+    }
+  }, order.id);
+}
+
+// ── Card management ───────────────────────────────────────────────────────────
+async function addCard() {
+  const d = await apiFetch('/billing/card-setup-order', {method:'POST'});
+  if (!d) { toast('Could not initiate card setup','danger'); return; }
+
+  launchRazorpay(100, 'Card authorisation (₹1 refunded)', async (resp) => {
+    const res = await apiFetch('/billing/save-card', {
+      method:'POST',
+      body: JSON.stringify({payment_id: resp.razorpay_payment_id})
+    });
+    if (res?.success) { toast('Card saved','success'); loadBilling(); }
+    else toast('Card save failed','danger');
+  }, d.order_id);
+}
+
+async function changeCard() { await removeCard(true); addCard(); }
+
+async function removeCard(silent=false) {
+  if (!silent && !confirm('Remove saved card?')) return;
+  await apiFetch('/billing/remove-card', {method:'DELETE'});
+  if (!silent) { toast('Card removed','warn'); loadBilling(); }
+}
+
+// ── Cancel / Downgrade ────────────────────────────────────────────────────────
+async function cancelPlan() {
+  if (!confirm('Cancel your subscription? You keep access until period end.')) return;
+  const r = await apiFetch('/billing/cancel', {method:'POST'});
+  if (r?.success) { toast('Subscription cancelled. Access continues until period end.','warn'); loadBilling(); }
+  else toast('Could not cancel — contact support@salesflow.in','danger');
+}
+
+async function downgradeFree() {
+  if (!confirm('Downgrade to Free? Limits apply immediately.')) return;
+  const r = await apiFetch('/billing/downgrade', {method:'POST'});
+  if (r?.success) { toast('Downgraded to Free','warn'); loadBilling(); }
+}
+
+// ── Bootstrap ─────────────────────────────────────────────────────────────────
+async function loadBilling() {
+  document.getElementById('loadingState').style.display = 'inline-flex';
+  const data = await apiFetch('/billing/status');
+  document.getElementById('loadingState').style.display = 'none';
+
+  render(data || {
+    plan:'free', plan_expires:null,
+    usage:{leads:12, emails:3, campaigns:0},
+    invoices:[], card:null, credits:0,
+  });
+}
+
+loadBilling();
+</script>
+</body>
+</html>

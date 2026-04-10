@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Profile Settings — SalesFlow</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com"/>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500&family=DM+Mono:wght@400&display=swap" rel="stylesheet"/>
+    <style>
+        :root{
+            --bg:#080810;--surface:#0f0f1a;--surface2:#141422;
+            --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.12);
+            --accent:#7c6dfa;--text:#e8e6f0;--muted:#6b6880;
+        }
+        *{margin:0;padding:0;box-sizing:border-box;}
+        body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;display:flex;min-height:100vh;}
+
+        /* Re-use your sidebar styles here or keep them in a shared CSS file */
+        .main{flex:1;padding:2rem;max-width:800px;margin:0 auto;}
+        .header{margin-bottom:2rem;border-bottom:1px solid var(--border);padding-bottom:1rem;}
+        h1{font-family:'Syne',sans-serif;font-weight:800;font-size:1.8rem;}
+
+        .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:2rem;margin-bottom:1.5rem;}
+        .card-title{font-family:'Syne',sans-serif;font-weight:700;margin-bottom:1.5rem;font-size:1.1rem;}
+
+        .form-group{margin-bottom:1.5rem;}
+        label{display:block;font-family:'DM Mono',monospace;font-size:0.7rem;text-transform:uppercase;color:var(--muted);margin-bottom:0.5rem;letter-spacing:0.1em;}
+        input[type="text"], input[type="email"], select, textarea{
+            width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;
+            padding:0.75rem 1rem;color:var(--text);font-family:inherit;font-size:0.9rem;outline:none;
+        }
+        input:focus{border-color:var(--accent);}
+
+        .color-picker-wrap{display:flex;align-items:center;gap:1rem;}
+        input[type="color"]{
+            width:40px;height:40px;border:none;background:none;cursor:pointer;
+        }
+
+        .save-btn{
+            background:var(--accent);color:#fff;border:none;border-radius:8px;
+            padding:0.8rem 2rem;font-weight:600;cursor:pointer;transition:opacity 0.2s;
+        }
+        .save-btn:hover{opacity:0.9;}
+        
+        #message{margin-top:1rem;font-size:0.85rem;display:none;}
+        .success{color:var(--accent);}
+    </style>
+</head>
+<body>
+    <div class="main">
+    <div class="header">
+        <h1>Settings</h1>
+    </div>
+
+    <div class="card">
+        <div class="card-title">Personal Information</div>
+        <div class="form-group">
+            <label>Full Name</label>
+            <input type="text" id="full_name" placeholder="Your Name">
+        </div>
+        <div class="form-group">
+            <label>Email Address</label>
+            <input type="email" id="email" readonly style="opacity:0.5; cursor: not-allowed;">
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">Business & Branding</div>
+        <p style="color:var(--muted);font-size:0.85rem;margin-bottom:1.5rem;">Updating these will change how AI generates your emails and how your templates look.</p>
+        
+        <div class="form-group">
+            <label>Company Name</label>
+            <input type="text" id="company_name" placeholder="Your Company">
+        </div>
+
+        <div class="form-group">
+            <label>Company Website</label>
+            <input type="text" id="website" placeholder="https://company.com">
+        </div>
+
+        <div class="form-group">
+            <label>Company Description</label>
+            <textarea id="company_description" rows="3"></textarea>
+        </div>
+
+        <div class="form-group">
+            <label>Target Audience</label>
+            <textarea id="target_audience" rows="2"></textarea>
+        </div>
+
+        <div class="form-group">
+            <label>Purpose & Goal</label>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <input type="text" id="purpose" placeholder="Outreach Purpose">
+                <input type="text" id="goal" placeholder="Main Goal">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Brand Accent Color</label>
+            <div class="color-picker-wrap">
+                <input type="color" id="brandColor" value="#7c6dfa">
+                <span id="colorHex" style="font-family:'DM Mono';font-size:0.8rem;">#7C6DFA</span>
+            </div>
+        </div>
+    </div>
+
+    <button class="save-btn" onclick="saveProfile()">Save Changes</button>
+    <div id="message" style="margin-top: 15px; font-size: 0.9rem;"></div>
+</div>
+
+    <script>
+        const API = 'http://localhost:8000/api';
+        const token = localStorage.getItem('sf_token');
+
+        // Color picker sync
+        document.getElementById('brandColor').addEventListener('input', (e) => {
+            document.getElementById('colorHex').textContent = e.target.value.toUpperCase();
+        });
+async function loadProfile() {
+    const r = await fetch(API + '/auth/me', {
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const user = await r.json();
+
+    // Mapping Step 1: Personal Info
+    document.getElementById('full_name').value = user.full_name || '';
+    document.getElementById('email').value = user.email || '';
+    
+    if (user.profile) {
+        // Mapping Step 2: Company Info
+        document.getElementById('company_name').value = user.profile.company_name || '';
+        document.getElementById('website').value = user.profile.website || '';
+        document.getElementById('company_description').value = user.profile.company_description || '';
+
+        // Mapping Step 3: Goals & Audience
+        document.getElementById('target_audience').value = user.profile.target_audience || '';
+        document.getElementById('purpose').value = user.profile.purpose || '';
+        document.getElementById('goal').value = user.profile.goal || '';
+
+        // Mapping Branding
+        const color = user.profile.brand_color || '#7c6dfa';
+        document.getElementById('brandColor').value = color;
+        document.getElementById('colorHex').textContent = color.toUpperCase();
+    }
+}
+
+async function saveProfile() {
+    const payload = {
+        full_name: document.getElementById('full_name').value,
+        company_name: document.getElementById('company_name').value,
+        company_description: document.getElementById('company_description').value,
+        target_audience: document.getElementById('target_audience').value,
+        purpose: document.getElementById('purpose').value,
+        goal: document.getElementById('goal').value,
+        website: document.getElementById('website').value || null,
+        brand_color: document.getElementById('brandColor').value // 🔥 Send color to backend
+    };
+
+    const r = await fetch(API + '/profile/submit', {
+        method: 'POST',
+        headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+    });
+
+    if (r.ok) {
+        alert("Profile & Branding Updated!");
+        window.location.reload(); // Refresh to see changes
+    }
+}
+        loadProfile();
+    </script>
+</body>
+</html>

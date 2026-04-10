@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Setup your profile — SalesFlow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#080810;--surface:#0f0f1a;--surface2:#141422;--surface3:#1a1a2e;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.12);--border3:rgba(255,255,255,0.18);
+  --accent:#7c6dfa;--accent2:#e8632a;--accent-dim:rgba(124,109,250,0.08);
+  --text:#e8e6f0;--muted:#6b6880;--muted2:#9896a8;--green:#3ddc97;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;}
+.layout{display:flex;min-height:100vh;}
+
+/* ── SIDEBAR ── */
+.sidebar{
+  width:280px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);
+  padding:2.5rem 2rem;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;
+}
+.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:1.3rem;letter-spacing:-0.02em;margin-bottom:3rem;}
+.logo span{color:var(--accent);}
+.steps-nav{list-style:none;display:flex;flex-direction:column;gap:0.15rem;}
+.step-nav-item{display:flex;align-items:center;gap:12px;padding:0.65rem 0.85rem;border-radius:8px;cursor:pointer;transition:background .15s;}
+.step-nav-item.active{background:rgba(124,109,250,0.1);}
+.step-dot{
+  width:26px;height:26px;border-radius:50%;border:1.5px solid var(--border2);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--muted);transition:all .2s;
+}
+.step-nav-item.active .step-dot{border-color:var(--accent);color:var(--accent);}
+.step-nav-item.done .step-dot{border-color:var(--green);background:rgba(61,220,151,0.1);color:var(--green);}
+.step-nav-label{font-size:0.85rem;color:var(--muted);}
+.step-nav-sub{font-size:0.72rem;color:var(--muted);opacity:0.6;margin-top:1px;}
+.step-nav-item.active .step-nav-label{color:var(--text);}
+
+.rag-badge{
+  margin-top:1.5rem;background:rgba(61,220,151,0.05);border:1px solid rgba(61,220,151,0.15);
+  border-radius:10px;padding:1rem 1.1rem;
+}
+.rag-badge-title{font-size:0.78rem;font-weight:500;color:var(--green);display:flex;align-items:center;gap:6px;margin-bottom:0.35rem;}
+.rag-badge p{font-size:0.75rem;color:var(--muted);line-height:1.5;}
+
+.sidebar-help{
+  margin-top:1rem;background:rgba(124,109,250,0.06);border:1px solid rgba(124,109,250,0.15);
+  border-radius:10px;padding:1.1rem;
+}
+.sidebar-help h4{font-size:0.82rem;font-weight:500;margin-bottom:0.35rem;}
+.sidebar-help p{font-size:0.75rem;color:var(--muted);line-height:1.5;}
+
+/* ── MAIN ── */
+.main{flex:1;display:flex;flex-direction:column;}
+.progress-bar{height:3px;background:var(--surface);}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),#a78bfa);transition:width 0.4s ease;}
+.content{flex:1;padding:3.5rem;max-width:700px;}
+
+.step-label{
+  font-family:'DM Mono',monospace;font-size:0.7rem;letter-spacing:0.1em;
+  color:var(--accent);text-transform:uppercase;margin-bottom:0.75rem;
+}
+.step-title{font-family:'Syne',sans-serif;font-weight:800;font-size:2.1rem;letter-spacing:-0.03em;margin-bottom:0.5rem;line-height:1.2;}
+.step-desc{color:var(--muted);font-size:0.93rem;margin-bottom:2.25rem;line-height:1.65;}
+
+/* ── FIELDS ── */
+.field{margin-bottom:1.4rem;}
+.field label{display:block;font-size:0.84rem;font-weight:500;color:var(--text);margin-bottom:0.45rem;}
+.field label span{color:var(--muted);font-weight:400;font-size:0.78rem;}
+.field input,.field textarea,.field select{
+  width:100%;background:var(--surface);border:1px solid var(--border2);
+  border-radius:8px;padding:0.8rem 1rem;color:var(--text);
+  font-family:'DM Sans',sans-serif;font-size:0.92rem;
+  transition:border-color .2s,background .2s;outline:none;resize:vertical;
+}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--accent);background:var(--surface2);}
+.field textarea{min-height:90px;line-height:1.65;}
+.field select option{background:var(--surface2);}
+.field .hint{font-size:0.77rem;color:var(--muted);margin-top:0.4rem;line-height:1.5;}
+.field .hint strong{color:var(--muted2);}
+
+/* two-column grid for shorter fields */
+.field-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.4rem;}
+@media(max-width:600px){.field-grid{grid-template-columns:1fr;}}
+
+/* section divider inside step */
+.section-divider{
+  border:none;border-top:1px solid var(--border);
+  margin:2rem 0 1.75rem;
+}
+.section-label{
+  font-family:'DM Mono',monospace;font-size:0.68rem;letter-spacing:0.12em;
+  color:var(--muted);text-transform:uppercase;margin-bottom:1.25rem;
+  display:flex;align-items:center;gap:8px;
+}
+.section-label::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* RAG info callout */
+.rag-callout{
+  background:linear-gradient(135deg,rgba(61,220,151,0.05),rgba(61,220,151,0.02));
+  border:1px solid rgba(61,220,151,0.15);border-radius:10px;
+  padding:0.9rem 1.1rem;margin-bottom:1.75rem;
+  font-size:0.82rem;color:var(--muted);line-height:1.6;
+}
+.rag-callout strong{color:var(--green);font-weight:500;}
+
+/* optional tag */
+.opt-tag{
+  display:inline-block;font-size:0.68rem;font-family:'DM Mono',monospace;
+  background:rgba(255,255,255,0.06);border:1px solid var(--border2);
+  border-radius:4px;padding:1px 6px;color:var(--muted);margin-left:6px;vertical-align:middle;
+}
+
+/* ── EMAIL PREVIEW ── */
+.email-preview{background:var(--surface);border:1px solid var(--border2);border-radius:12px;overflow:hidden;margin-bottom:1.5rem;}
+.email-preview-header{background:var(--surface2);border-bottom:1px solid var(--border);padding:0.9rem 1.25rem;display:flex;align-items:center;justify-content:space-between;}
+.email-preview-header span{font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--muted);letter-spacing:0.05em;}
+.regenerate-btn{background:transparent;border:1px solid var(--border2);color:var(--muted);border-radius:6px;padding:4px 12px;font-size:0.75rem;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;}
+.regenerate-btn:hover{border-color:var(--accent);color:var(--accent);}
+.email-subject-row{border-bottom:1px solid var(--border);padding:0.75rem 1.25rem;display:flex;align-items:center;gap:10px;}
+.subject-label{font-size:0.72rem;color:var(--muted);font-family:'DM Mono',monospace;flex-shrink:0;}
+.subject-input{flex:1;background:transparent;border:none;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.9rem;font-weight:500;outline:none;}
+.email-body-editor{width:100%;background:transparent;border:none;padding:1.25rem;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.9rem;line-height:1.8;resize:none;outline:none;min-height:220px;}
+.placeholder-hint{background:rgba(124,109,250,0.07);border:1px solid rgba(124,109,250,0.18);border-radius:8px;padding:0.7rem 1rem;margin-bottom:1rem;font-size:0.8rem;color:var(--muted);}
+.placeholder-hint code{background:rgba(124,109,250,0.15);color:var(--accent);border-radius:4px;padding:1px 6px;font-family:'DM Mono',monospace;font-size:0.78rem;}
+
+/* ── BUTTONS ── */
+.btn-row{display:flex;gap:1rem;align-items:center;margin-top:2rem;}
+.btn-next{background:var(--accent);color:#fff;border:none;padding:0.85rem 2rem;border-radius:8px;font-size:0.93rem;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:opacity .2s,transform .15s,box-shadow .2s;}
+.btn-next:hover{opacity:0.9;transform:translateY(-1px);box-shadow:0 4px 18px rgba(124,109,250,0.3);}
+.btn-back{background:transparent;border:1px solid var(--border2);color:var(--muted);padding:0.85rem 1.5rem;border-radius:8px;font-size:0.93rem;cursor:pointer;font-family:'DM Sans',sans-serif;transition:border-color .2s,color .2s;}
+.btn-back:hover{border-color:var(--border3);color:var(--text);}
+
+/* ── MISC ── */
+.error-msg{background:rgba(226,75,74,0.08);border:1px solid rgba(226,75,74,0.18);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1rem;font-size:0.84rem;color:#f09595;display:none;}
+.error-msg.show{display:block;}
+.step-panel{display:none;}
+.step-panel.active{display:block;}
+.spinner{width:34px;height:34px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 1rem;}
+@keyframes spin{to{transform:rotate(360deg);}}
+@media(max-width:768px){.sidebar{display:none;}.content{padding:2rem 1.5rem;}}
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="logo">Sales<span>Flow</span></div>
+    <ul class="steps-nav">
+      <li class="step-nav-item active" data-step="1">
+        <div class="step-dot">1</div>
+        <div><div class="step-nav-label">Your details</div><div class="step-nav-sub">Name, role, website</div></div>
+      </li>
+      <li class="step-nav-item" data-step="2">
+        <div class="step-dot">2</div>
+        <div><div class="step-nav-label">Company info</div><div class="step-nav-sub">What you do, who you serve</div></div>
+      </li>
+      <li class="step-nav-item" data-step="3">
+        <div class="step-dot">3</div>
+        <div><div class="step-nav-label">Goal & audience</div><div class="step-nav-sub">ICP, CTA, outreach goal</div></div>
+      </li>
+      <li class="step-nav-item" data-step="4">
+        <div class="step-dot">4</div>
+        <div><div class="step-nav-label">Sales intelligence</div><div class="step-nav-sub">Proof, objections, tone</div></div>
+      </li>
+      <li class="step-nav-item" data-step="5">
+        <div class="step-dot">5</div>
+        <div><div class="step-nav-label">Your AI email</div><div class="step-nav-sub">Review &amp; edit</div></div>
+      </li>
+    </ul>
+
+    <div class="rag-badge">
+      <div class="rag-badge-title">🧠 AI Memory</div>
+      <p>Everything you fill in is stored in your AI's memory. More detail = smarter chatbot + fewer hallucinations.</p>
+    </div>
+
+    <div class="sidebar-help">
+      <h4>Why do we ask this?</h4>
+      <p>Your profile personalises every email, reply, and call script the AI generates for you.</p>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:20%"></div></div>
+    <div class="content">
+      <div class="error-msg" id="errorMsg"></div>
+
+      <!-- ────────────────── STEP 1 — Identity ────────────────── -->
+      <div class="step-panel active" id="step1">
+        <div class="step-label">Step 1 of 5</div>
+        <h1 class="step-title">Tell us about you.</h1>
+        <p class="step-desc">This is embedded in your AI's memory so every email sounds like it comes from a real person — you.</p>
+
+        <div class="field-grid">
+          <div class="field">
+            <label>Your full name</label>
+            <input type="text" id="full_name" placeholder="Rahul Sharma"/>
+          </div>
+          <div class="field">
+            <label>Your role <span class="opt-tag">optional</span></label>
+            <input type="text" id="sender_role" placeholder="Founder / Head of Sales"/>
+          </div>
+        </div>
+        <div class="field">
+          <label>Your website <span class="opt-tag">optional</span></label>
+          <input type="url" id="website" placeholder="https://yourcompany.com"/>
+          <div class="hint">Used to give the AI context about your product's online presence.</div>
+        </div>
+        <div class="field">
+          <label>Language &amp; region <span class="opt-tag">optional</span></label>
+          <input type="text" id="language_region" placeholder="English, India" value="English, India"/>
+          <div class="hint">The AI will match tone and references to this market.</div>
+        </div>
+
+        <div class="btn-row"><button class="btn-next" onclick="goStep(2)">Continue →</button></div>
+      </div>
+
+      <!-- ────────────────── STEP 2 — Company ────────────────── -->
+      <div class="step-panel" id="step2">
+        <div class="step-label">Step 2 of 5</div>
+        <h1 class="step-title">About your company.</h1>
+        <p class="step-desc">The more specific you are here, the more your AI agent sounds like an expert in your space.</p>
+
+        <div class="field">
+          <label>Company name</label>
+          <input type="text" id="company_name" placeholder="TechScale India"/>
+        </div>
+        <div class="field">
+          <label>What does your company do? <span>(be specific)</span></label>
+          <textarea id="company_description" placeholder="We help B2B SaaS companies automate their outbound sales using AI-powered email sequences and reply management."></textarea>
+          <div class="hint">Include the product/service, the problem you solve, and how. <strong>Avoid vague phrases like "we use AI to help businesses grow".</strong></div>
+        </div>
+        <div class="field">
+          <label>Industries you serve <span class="opt-tag">optional</span></label>
+          <input type="text" id="industries_served" placeholder="B2B SaaS, Fintech, D2C, Staffing, Real Estate"/>
+          <div class="hint">The AI will only pitch to relevant verticals.</div>
+        </div>
+        <div class="field">
+          <label>Value proposition — what's the #1 outcome clients get?</label>
+          <textarea id="value_proposition" placeholder="Our clients typically 3x their booked demo rate within 30 days without hiring more SDRs." style="min-height:75px;"></textarea>
+          <div class="hint">One or two sentences. <strong>This is what the chatbot says when a lead asks "so what do you actually do?"</strong></div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn-back" onclick="goStep(1)">← Back</button>
+          <button class="btn-next" onclick="goStep(3)">Continue →</button>
+        </div>
+      </div>
+
+      <!-- ────────────────── STEP 3 — Audience & Goal ────────────────── -->
+      <div class="step-panel" id="step3">
+        <div class="step-label">Step 3 of 5</div>
+        <h1 class="step-title">Who do you want<br>to reach?</h1>
+        <p class="step-desc">Defines your ICP so the AI qualifies and personalises for the right people.</p>
+
+        <div class="field">
+          <label>Target audience (ICP)</label>
+          <textarea id="target_audience" placeholder="Founders and sales heads at B2B SaaS startups in India with 5–50 employees and an existing SDR team." style="min-height:80px;"></textarea>
+        </div>
+        <div class="field-grid">
+          <div class="field">
+            <label>Target company size <span class="opt-tag">optional</span></label>
+            <input type="text" id="company_size" placeholder="10–200 employees"/>
+          </div>
+          <div class="field">
+            <label>Target job titles <span class="opt-tag">optional</span></label>
+            <input type="text" id="job_titles" placeholder="Founder, VP Sales, Head of Growth"/>
+          </div>
+        </div>
+        <div class="field">
+          <label>Purpose of outreach</label>
+          <textarea id="purpose" placeholder="Book discovery calls to demo our AI outreach platform." style="min-height:70px;"></textarea>
+        </div>
+        <div class="field">
+          <label>Main goal</label>
+          <input type="text" id="goal" placeholder="Get 20 qualified demos booked per month"/>
+        </div>
+        <div class="field">
+          <label>Desired CTA in every conversation <span class="opt-tag">optional</span></label>
+          <input type="text" id="desired_cta" placeholder="Book a 20-minute discovery call" value="Book a 20-minute discovery call"/>
+          <div class="hint">The chatbot will always steer toward this action.</div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn-back" onclick="goStep(2)">← Back</button>
+          <button class="btn-next" onclick="goStep(4)">Continue →</button>
+        </div>
+      </div>
+
+      <!-- ────────────────── STEP 4 — Sales Intelligence ────────────────── -->
+      <div class="step-panel" id="step4">
+        <div class="step-label">Step 4 of 5</div>
+        <h1 class="step-title">Sales intelligence.</h1>
+        <p class="step-desc">This is what separates a chatbot that sounds human from one that hallucinates. Fill in as much as you can.</p>
+
+        <div class="rag-callout">
+          🧠 <strong>Stored in AI memory.</strong> The more you fill here, the better your chatbot handles live conversations — objections, pricing questions, competitor mentions — without making things up.
+        </div>
+
+        <div class="section-label">Proof &amp; credibility</div>
+
+        <div class="field">
+          <label>Proof points &amp; real results <span class="opt-tag">optional but highly recommended</span></label>
+          <textarea id="proof_points" placeholder="• Helped a 12-person SaaS team book 47 demos in 3 weeks with zero extra headcount.&#10;• One fintech client reduced SDR workload by 60% in month 1.&#10;• 94% reply rate on AI-personalised sequences vs 12% industry average."></textarea>
+          <div class="hint"><strong>Use only real numbers you can stand behind.</strong> If left empty, the AI will never invent statistics.</div>
+        </div>
+        <div class="field">
+          <label>Pricing model <span class="opt-tag">optional</span></label>
+          <input type="text" id="pricing_model" placeholder="₹15,000/month · No long-term contract · 14-day free trial"/>
+          <div class="hint">If left empty, the AI will never guess or disclose pricing. It will direct pricing questions to you.</div>
+        </div>
+        <div class="field">
+          <label>Contract type <span class="opt-tag">optional</span></label>
+          <input type="text" id="contract_type" placeholder="Month-to-month / Annual / Pilot-first"/>
+        </div>
+
+        <hr class="section-divider"/>
+        <div class="section-label">Objections &amp; competitors</div>
+
+        <div class="field">
+          <label>Common objections &amp; how you respond <span class="opt-tag">optional but powerful</span></label>
+          <textarea id="objection_handling" placeholder="'We already have an SDR team' → Our tool makes your SDRs 3x more productive, not redundant.&#10;'Not the right time' → Totally understand — when would be? Our setup takes under an hour.&#10;'Too expensive' → We have a trial — no commitment to start."></textarea>
+          <div class="hint">One objection + response per line. The AI uses this to handle pushback naturally.</div>
+        </div>
+        <div class="field">
+          <label>Competitors <span class="opt-tag">optional</span></label>
+          <input type="text" id="competitors" placeholder="Apollo, Instantly, Lemlist, Clay"/>
+          <div class="hint">The AI will never recommend them or say "like [competitor]".</div>
+        </div>
+        <div class="field">
+          <label>How you differ from competitors <span class="opt-tag">optional</span></label>
+          <textarea id="differentiators" placeholder="Unlike Apollo, we don't just automate sends — our AI reads replies and continues the conversation autonomously. No complex sequences to build." style="min-height:75px;"></textarea>
+        </div>
+
+        <hr class="section-divider"/>
+        <div class="field">
+  <label>Custom FAQ & Facts <span class="opt-tag">Highly recommended for RAG</span></label>
+  <textarea id="custom_faq" placeholder="Q: Do you offer refunds? A: Yes, 14-day money back.&#10;Q: Where is data hosted? A: AWS Mumbai.&#10;Q: Are you GDPR compliant? A: Yes, fully."></textarea>
+  <div class="hint">🧠 <strong>AI Safety Net:</strong> Add specific facts here (Privacy, Security, Logistics). If a lead asks something not covered elsewhere, the AI will pull from this list instead of guessing.</div>
+</div>
+        <div class="section-label">Tone &amp; guardrails</div>
+
+        <div class="field">
+          <label>Preferred tone / voice</label>
+          <input type="text" id="tone_preference" placeholder="Warm, direct, peer-to-peer — like a founder talking to another founder. Not corporate."/>
+        </div>
+        <div class="field">
+          <label>Phrases to NEVER use <span class="opt-tag">optional</span></label>
+          <input type="text" id="never_say" placeholder="I hope this finds you well, circling back, just following up, per my last email"/>
+        </div>
+        <div class="field">
+          <label>Custom AI rules <span class="opt-tag">optional</span></label>
+          <textarea id="custom_rules" placeholder="Never mention our pricing until the lead specifically asks.&#10;Never pitch to HR companies.&#10;Always offer a free trial before closing." style="min-height:75px;"></textarea>
+          <div class="hint">Any rule you add here is permanently stored in the AI's memory and followed in every conversation.</div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn-back" onclick="goStep(3)">← Back</button>
+          <button class="btn-next" onclick="submitAndGenerate()">Generate my AI email →</button>
+        </div>
+      </div>
+
+      <!-- ────────────────── STEP 5 — AI Email ────────────────── -->
+      <div class="step-panel" id="step5">
+        <div class="step-label">Step 5 of 5</div>
+        <h1 class="step-title">Your AI-generated<br>email template.</h1>
+        <p class="step-desc">Edit freely — this is the base for all your campaigns.</p>
+
+        <div id="aiLoading" style="padding:3rem;text-align:center;display:none;">
+          <div class="spinner"></div>
+          <p style="color:var(--muted);font-size:0.88rem;margin-top:0.75rem;">Generating your personalised email…</p>
+          <p style="color:var(--muted);font-size:0.78rem;margin-top:0.4rem;">Also saving everything to AI memory.</p>
+        </div>
+
+        <div id="emailSection" style="display:none;">
+          <div class="placeholder-hint">
+            Placeholders: <code>{{lead_name}}</code> <code>{{lead_company}}</code> <code>{{sender_name}}</code>
+          </div>
+          <div class="email-preview">
+            <div class="email-preview-header">
+              <span>AI GENERATED TEMPLATE</span>
+              <button class="regenerate-btn" onclick="regenerate()">↻ Regenerate</button>
+            </div>
+            <div class="email-subject-row">
+              <span class="subject-label">SUBJECT</span>
+              <input class="subject-input" id="emailSubject" type="text" placeholder="Subject line…"/>
+            </div>
+            <textarea class="email-body-editor" id="emailBody" placeholder="Email body…"></textarea>
+          </div>
+          <div class="btn-row">
+            <button class="btn-next" onclick="finish()">Go to dashboard →</button>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /layout -->
+
+<script>
+const API   = 'http://localhost:8000/api';
+const token = localStorage.getItem('sf_token');
+if (!token) window.location.href = '/login.html';
+
+const TOTAL_STEPS = 5;
+let currentStep   = 1;
+
+// ── navigation ───────────────────────────────────────────────────────────────
+function goStep(n) {
+  if (n > currentStep && !validateStep(currentStep)) return;
+  document.getElementById('step' + currentStep).classList.remove('active');
+  document.querySelector('[data-step="' + currentStep + '"]').classList.remove('active');
+  document.querySelector('[data-step="' + currentStep + '"]').classList.add('done');
+  currentStep = n;
+  document.getElementById('step' + n).classList.add('active');
+  document.querySelector('[data-step="' + n + '"]').classList.remove('done');
+  document.querySelector('[data-step="' + n + '"]').classList.add('active');
+  document.getElementById('progressFill').style.width = ((n / TOTAL_STEPS) * 100) + '%';
+  hideError();
+  window.scrollTo(0, 0);
+}
+
+// ── validation ────────────────────────────────────────────────────────────────
+const REQUIRED = {
+  1: [['full_name',          'Please enter your name']],
+  2: [['company_name',       'Please enter your company name'],
+      ['company_description','Please describe what your company does'],
+      ['value_proposition',  'Please enter your value proposition']],
+  3: [['target_audience',    'Please describe your target audience'],
+      ['purpose',            'Please describe your outreach purpose'],
+      ['goal',               'Please enter your main goal']],
+  4: [], // all optional on step 4
+};
+
+function validateStep(step) {
+  const checks = REQUIRED[step] || [];
+  for (const [id, msg] of checks) {
+    const el = document.getElementById(id);
+    if (!el || !el.value.trim()) { showError(msg); return false; }
+  }
+  return true;
+}
+
+function showError(msg) {
+  const el = document.getElementById('errorMsg');
+  el.textContent = msg; el.classList.add('show');
+}
+function hideError() {
+  document.getElementById('errorMsg').classList.remove('show');
+}
+
+// ── collect full payload ──────────────────────────────────────────────────────
+function collectPayload() {
+  const g = id => (document.getElementById(id) || {}).value?.trim() || null;
+  return {
+    full_name:           g('full_name'),
+    sender_role:         g('sender_role'),
+    website:             g('website'),
+    language_region:     g('language_region'),
+    company_name:        g('company_name'),
+    company_description: g('company_description'),
+    industries_served:   g('industries_served'),
+    value_proposition:   g('value_proposition'),
+    target_audience:     g('target_audience'),
+    company_size:        g('company_size'),
+    job_titles:          g('job_titles'),
+    purpose:             g('purpose'),
+    goal:                g('goal'),
+    desired_cta:         g('desired_cta'),
+    proof_points:        g('proof_points'),
+    pricing_model:       g('pricing_model'),
+    contract_type:       g('contract_type'),
+    objection_handling:  g('objection_handling'),
+    competitors:         g('competitors'),
+    differentiators:     g('differentiators'),
+    tone_preference:     g('tone_preference'),
+    never_say:           g('never_say'),
+    custom_rules:        g('custom_rules'),
+    custom_faq:          g('custom_faq'),
+  };
+}
+
+// ── submit + generate ─────────────────────────────────────────────────────────
+async function submitAndGenerate() {
+  if (!validateStep(4)) return;
+
+  // Move to step 5 (email preview)
+  document.getElementById('step' + currentStep).classList.remove('active');
+  document.querySelector('[data-step="' + currentStep + '"]').classList.add('done');
+  currentStep = 5;
+  document.getElementById('step5').classList.add('active');
+  document.querySelector('[data-step="5"]').classList.remove('done');
+  document.querySelector('[data-step="5"]').classList.add('active');
+  document.getElementById('progressFill').style.width = '100%';
+  document.getElementById('aiLoading').style.display   = 'block';
+  document.getElementById('emailSection').style.display = 'none';
+  hideError();
+  window.scrollTo(0, 0);
+
+  try {
+    const resp = await fetch(API + '/profile/submit', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body:    JSON.stringify(collectPayload()),
+    });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.detail || 'Server error ' + resp.status);
+    if (!data.ai_email_template) throw new Error('No email template returned');
+    showEmail(data.ai_email_template);
+  } catch (err) {
+    document.getElementById('aiLoading').style.display = 'none';
+    showError('Error: ' + err.message);
+    goStep(4);
+  }
+}
+
+// ── email display ─────────────────────────────────────────────────────────────
+function showEmail(template) {
+  document.getElementById('aiLoading').style.display  = 'none';
+  const match = template.match(/^SUBJECT:\s*(.+)$/mi);
+  document.getElementById('emailSubject').value = match ? match[1].trim() : '';
+  document.getElementById('emailBody').value    = match
+    ? template.replace(/^SUBJECT:\s*.+$/mi, '').trim()
+    : template;
+  document.getElementById('emailSection').style.display = 'block';
+}
+
+async function regenerate() {
+  document.getElementById('emailSection').style.display  = 'none';
+  document.getElementById('aiLoading').style.display     = 'block';
+  try {
+    const resp = await fetch(API + '/profile/regenerate-email', {
+      method: 'POST', headers: { 'Authorization': 'Bearer ' + token }
+    });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.detail || 'Failed');
+    showEmail(data.ai_email_template);
+  } catch (err) {
+    document.getElementById('aiLoading').style.display  = 'none';
+    document.getElementById('emailSection').style.display = 'block';
+    showError('Regeneration failed: ' + err.message);
+  }
+}
+
+async function finish() {
+  const subject  = document.getElementById('emailSubject').value.trim();
+  const body     = document.getElementById('emailBody').value.trim();
+  const fullTpl  = 'SUBJECT: ' + subject + '\n\n' + body;
+  try {
+    await fetch(API + '/profile/email-template', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body:   JSON.stringify({ ai_email_template: fullTpl }),
+    });
+  } catch(e) {}
+  window.location.href = '/dashboard.html';
+}
+</script>
+</body>
+</html>

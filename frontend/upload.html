@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Import Leads — SalesFlow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#080810;--surface:#0f0f1a;--surface2:#141422;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.12);
+  --accent:#7c6dfa;--accent2:#e8632a;
+  --text:#e8e6f0;--muted:#6b6880;--green:#3ddc97;
+  --sidebar:240px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;display:flex;min-height:100vh;}
+
+/* ── SIDEBAR ── */
+.sidebar{width:var(--sidebar);flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;padding:1.5rem 1.25rem;overflow-y:auto;}
+.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:1.2rem;letter-spacing:-0.02em;padding:0 0.5rem;margin-bottom:1.5rem;}
+.logo span{color:var(--accent);}
+.nav-item{display:flex;align-items:center;gap:10px;padding:0.6rem 0.75rem;border-radius:8px;cursor:pointer;font-size:0.88rem;color:var(--muted);text-decoration:none;margin:1px 0;transition:background .15s;}
+.nav-item:hover{background:rgba(255,255,255,0.04);color:var(--text);}
+.nav-item.active{background:rgba(124,109,250,0.1);color:var(--text);}
+
+/* ── MAIN ── */
+.main{margin-left:var(--sidebar);flex:1;display:flex;flex-direction:column;}
+.topbar{border-bottom:1px solid var(--border);padding:1rem 2rem;display:flex;align-items:center;gap:1rem;background:rgba(8,8,16,0.9);backdrop-filter:blur(10px);position:sticky;top:0;z-index:40;}
+.topbar-title{font-family:'Syne',sans-serif;font-weight:700;font-size:1.1rem;margin-right:auto;}
+
+.btn{padding:0.6rem 1.25rem;border-radius:7px;font-size:0.88rem;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:opacity .2s,transform .1s;border:none;}
+.btn:hover{opacity:0.85;transform:translateY(-1px);}
+.btn:disabled{opacity:0.45;cursor:not-allowed;transform:none;}
+.btn-primary{background:var(--accent);color:#fff;}
+.btn-secondary{background:transparent;border:1px solid var(--border2);color:var(--muted);}
+.btn-green{background:rgba(61,220,151,0.12);color:var(--green);border:1px solid rgba(61,220,151,0.2);}
+
+.page{padding:2rem;max-width:900px;}
+
+/* ── STEPPER ── */
+.stepper{display:flex;align-items:center;gap:0;margin-bottom:2.5rem;}
+.step{display:flex;align-items:center;gap:0.6rem;}
+.step-num{
+  width:28px;height:28px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:0.78rem;font-family:'DM Mono',monospace;font-weight:500;
+  background:var(--surface2);border:1px solid var(--border2);color:var(--muted);
+  transition:background .2s,color .2s,border-color .2s;
+}
+.step.active .step-num{background:var(--accent);border-color:var(--accent);color:#fff;}
+.step.done .step-num{background:rgba(61,220,151,0.15);border-color:rgba(61,220,151,0.3);color:var(--green);}
+.step-label{font-size:0.85rem;color:var(--muted);}
+.step.active .step-label{color:var(--text);}
+.step.done .step-label{color:var(--green);}
+.step-divider{flex:1;height:1px;background:var(--border2);margin:0 0.75rem;max-width:80px;}
+
+/* ── VIEWS ── */
+.view{display:none;}
+.view.active{display:block;}
+
+/* ── STEP 1: UPLOAD ZONE ── */
+.upload-zone{
+  border:2px dashed var(--border2);border-radius:16px;
+  padding:4rem 2rem;text-align:center;cursor:pointer;
+  transition:border-color .2s,background .2s;position:relative;
+}
+.upload-zone:hover,.upload-zone.dragging{
+  border-color:var(--accent);background:rgba(124,109,250,0.04);
+}
+.upload-icon{font-size:2.5rem;margin-bottom:1rem;}
+.upload-title{font-family:'Syne',sans-serif;font-weight:700;font-size:1.1rem;margin-bottom:0.5rem;}
+.upload-sub{font-size:0.85rem;color:var(--muted);line-height:1.6;}
+.upload-formats{
+  display:flex;gap:0.5rem;justify-content:center;margin-top:1.25rem;flex-wrap:wrap;
+}
+.fmt-chip{
+  background:var(--surface2);border:1px solid var(--border2);
+  border-radius:6px;padding:3px 10px;font-size:0.75rem;
+  font-family:'DM Mono',monospace;color:var(--muted);
+}
+#fileInput{display:none;}
+.upload-btn{
+  margin-top:1.5rem;display:inline-block;
+  background:var(--accent);color:#fff;
+  border:none;padding:0.65rem 1.75rem;border-radius:7px;
+  font-size:0.88rem;font-weight:500;cursor:pointer;
+  font-family:'DM Sans',sans-serif;
+}
+
+/* ── STEP 2: COLUMN MAPPING ── */
+.mapping-header{margin-bottom:1.5rem;}
+.mapping-header h2{font-family:'Syne',sans-serif;font-weight:700;font-size:1.1rem;margin-bottom:4px;}
+.mapping-header p{font-size:0.85rem;color:var(--muted);}
+.file-info-bar{
+  display:flex;align-items:center;gap:1rem;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:10px;padding:1rem 1.25rem;margin-bottom:1.5rem;
+}
+.file-info-icon{font-size:1.5rem;}
+.file-info-name{font-weight:500;font-size:0.92rem;}
+.file-info-rows{font-size:0.8rem;color:var(--muted);margin-top:2px;}
+.mapping-table{width:100%;border-collapse:collapse;margin-bottom:1.5rem;}
+.mapping-table th{
+  text-align:left;padding:0.6rem 1rem;
+  border-bottom:1px solid var(--border);
+  font-size:0.72rem;font-family:'DM Mono',monospace;
+  color:var(--muted);letter-spacing:0.07em;font-weight:400;
+}
+.mapping-table td{padding:0.5rem 1rem;border-bottom:1px solid var(--border);}
+.mapping-table tr:last-child td{border-bottom:none;}
+.col-name{font-size:0.85rem;font-weight:500;}
+.col-sample{font-size:0.75rem;color:var(--muted);margin-top:2px;font-family:'DM Mono',monospace;}
+.map-select{
+  width:100%;background:var(--surface2);border:1px solid var(--border2);
+  border-radius:6px;padding:0.45rem 0.75rem;
+  color:var(--text);font-family:'DM Sans',sans-serif;
+  font-size:0.85rem;outline:none;cursor:pointer;
+}
+.map-select option{background:var(--surface2);}
+.map-select.mapped{border-color:rgba(124,109,250,0.4);color:var(--accent);}
+.auto-badge{
+  display:inline-block;background:rgba(61,220,151,0.1);
+  color:var(--green);border-radius:4px;
+  padding:1px 6px;font-size:0.7rem;font-family:'DM Mono',monospace;
+  margin-left:6px;
+}
+
+/* ── PREVIEW TABLE ── */
+.preview-section{margin-bottom:1.5rem;}
+.preview-section h3{font-size:0.88rem;font-weight:500;margin-bottom:0.75rem;color:var(--muted);}
+.preview-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:10px;}
+.preview-table{width:100%;border-collapse:collapse;font-size:0.8rem;}
+.preview-table th{
+  padding:0.5rem 0.75rem;background:var(--surface2);
+  border-bottom:1px solid var(--border);
+  font-family:'DM Mono',monospace;font-size:0.7rem;
+  color:var(--muted);letter-spacing:0.06em;font-weight:400;
+  text-align:left;white-space:nowrap;
+}
+.preview-table td{
+  padding:0.5rem 0.75rem;border-bottom:1px solid var(--border);
+  color:var(--muted);white-space:nowrap;max-width:180px;
+  overflow:hidden;text-overflow:ellipsis;
+}
+.preview-table tr:last-child td{border-bottom:none;}
+.preview-table td:first-child{color:var(--text);}
+
+/* ── STEP 3: RESULT ── */
+.result-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:16px;padding:2.5rem;text-align:center;
+}
+.result-icon{font-size:3rem;margin-bottom:1rem;}
+.result-title{font-family:'Syne',sans-serif;font-weight:800;font-size:1.4rem;margin-bottom:0.5rem;}
+.result-sub{font-size:0.9rem;color:var(--muted);margin-bottom:2rem;line-height:1.6;}
+.result-stats{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;
+  margin-bottom:2rem;
+}
+.result-stat{
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:10px;padding:1rem;
+}
+.result-stat-val{font-family:'Syne',sans-serif;font-weight:800;font-size:1.8rem;letter-spacing:-0.02em;}
+.result-stat-lbl{font-size:0.75rem;color:var(--muted);margin-top:2px;}
+
+/* Enrichment progress */
+.enrich-progress{
+  background:var(--surface2);border:1px solid var(--border2);
+  border-radius:10px;padding:1.25rem;margin-bottom:1.5rem;
+  display:none;
+}
+.enrich-progress.show{display:block;}
+.progress-bar-track{height:6px;background:var(--border2);border-radius:3px;overflow:hidden;margin-top:0.75rem;}
+.progress-bar-fill{height:100%;background:var(--accent);border-radius:3px;transition:width .3s ease;width:0%;}
+.progress-label{font-size:0.82rem;color:var(--muted);margin-bottom:0.25rem;display:flex;justify-content:space-between;}
+
+/* Error box */
+.error-box{
+  background:rgba(226,75,74,0.08);border:1px solid rgba(226,75,74,0.2);
+  border-radius:8px;padding:0.75rem 1rem;margin-top:1rem;
+  font-size:0.82rem;color:#f09595;display:none;
+}
+.error-box.show{display:block;}
+
+.spinner{width:26px;height:26px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+@media(max-width:768px){
+  .sidebar{display:none;}
+  .main{margin-left:0;}
+  .page{padding:1rem;}
+  .result-stats{grid-template-columns:1fr;}
+  .stepper{flex-wrap:wrap;gap:0.5rem;}
+  .step-divider{display:none;}
+}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="logo">Sales<span>Flow</span></div>
+  <a class="nav-item" href="/dashboard.html">⬛ Dashboard</a>
+  <a class="nav-item active" href="/leads.html">◉ Leads</a>
+  <a class="nav-item" href="/campaigns.html">✉ Campaigns</a>
+  <a class="nav-item" href="/inbox.html">💬 Replies</a>
+  <a class="nav-item" href="/meetings.html">📅 Meetings</a>
+ 
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title">Import leads</div>
+    <button class="btn btn-secondary" onclick="window.location.href='/leads.html'">← Back to leads</button>
+  </div>
+
+  <div class="page">
+
+    <!-- Stepper -->
+    <div class="stepper" id="stepper">
+      <div class="step active" id="stepEl1">
+        <div class="step-num">1</div>
+        <div class="step-label">Upload file</div>
+      </div>
+      <div class="step-divider"></div>
+      <div class="step" id="stepEl2">
+        <div class="step-num">2</div>
+        <div class="step-label">Map columns</div>
+      </div>
+      <div class="step-divider"></div>
+      <div class="step" id="stepEl3">
+        <div class="step-num">3</div>
+        <div class="step-label">Import &amp; enrich</div>
+      </div>
+    </div>
+
+    <!-- ── STEP 1: UPLOAD ── -->
+<div class="view active" id="view1">
+  <div class="upload-zone" id="dropZone">
+    <div class="upload-icon">📂</div>
+    <div class="upload-title">Import your leads</div>
+    <div class="upload-sub">
+      Upload a CSV/Excel spreadsheet or use the <strong>AI Scanner</strong><br/>
+      to extract details from a business card instantly.
+    </div>
+
+    <div class="upload-formats">
+      <span class="fmt-chip">.csv</span>
+      <span class="fmt-chip">.xlsx</span>
+      <span class="fmt-chip">.xls</span>
+      <span class="fmt-chip" style="border-color:var(--accent2); color:var(--accent2); font-weight:600;">VISITING CARD</span>
+    </div>
+    
+    <div style="margin-top: 1.5rem; display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap;">
+      <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+        Choose spreadsheet
+      </button>
+      <button class="upload-btn" 
+              style="background: linear-gradient(135deg, var(--accent2) 0%, #ff8c00 100%);" 
+              onclick="ScanCard.open()">
+        📇 Scan Business Card
+      </button>
+    </div>
+    
+    <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" style="display:none;"/>
+  </div>
+
+  <div class="error-box" id="uploadError"></div>
+
+  <div style="margin-top:2rem; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1.5rem;">
+    <div style="font-size:0.8rem; color:var(--muted); font-family:'DM Mono',monospace; letter-spacing:0.05em; margin-bottom:1rem;">IMPORT GUIDELINES</div>
+    <div style="display:flex; flex-direction:column; gap:0.6rem; font-size:0.85rem; color:var(--muted); line-height:1.6;">
+      <div>✓ <strong style="color:var(--accent2)">Card Scan:</strong> Best for high-priority single leads from meetings.</div>
+      <div>✓ <strong style="color:var(--text)">Bulk Upload:</strong> Use standard spreadsheet formats for lists up to 5,000 rows.</div>
+      <div>✓ <strong style="color:var(--text)">Auto-Detect:</strong> AI identifies headers like Email and Company automatically.</div>
+      <div>✓ <strong style="color:var(--accent)">AI Enrichment:</strong> Available in Step 3 to fill missing business details.</div>
+    </div>
+  </div>
+</div>
+
+    <!-- ── STEP 2: MAPPING ── -->
+    <div class="view" id="view2">
+      <div class="mapping-header">
+        <h2>Map your columns</h2>
+        <p>We've auto-detected what we can. Adjust any mismatches and skip columns you don't need.</p>
+      </div>
+
+      <div class="file-info-bar" id="fileInfoBar">
+        <div class="file-info-icon">📄</div>
+        <div>
+          <div class="file-info-name" id="fileInfoName">—</div>
+          <div class="file-info-rows" id="fileInfoRows">— rows detected</div>
+        </div>
+        <button class="btn btn-secondary" style="margin-left:auto;" onclick="goStep(1)">← Change file</button>
+      </div>
+
+      <table class="mapping-table" id="mappingTable">
+        <thead>
+          <tr>
+            <th style="width:35%">CSV Column</th>
+            <th style="width:30%">Sample value</th>
+            <th style="width:35%">Map to field</th>
+          </tr>
+        </thead>
+        <tbody id="mappingBody"></tbody>
+      </table>
+
+      <div class="preview-section">
+        <h3>Preview (first 5 rows with current mapping)</h3>
+        <div class="preview-wrap">
+          <table class="preview-table" id="previewTable">
+            <thead id="previewHead"></thead>
+            <tbody id="previewBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="error-box" id="mappingError"></div>
+
+      <div style="display:flex;gap:0.75rem;padding-top:1rem;border-top:1px solid var(--border);">
+        <button class="btn btn-primary" id="confirmBtn" onclick="confirmImport()">Import leads →</button>
+        <button class="btn btn-secondary" onclick="goStep(1)">← Back</button>
+      </div>
+    </div>
+
+    <!-- ── STEP 3: RESULT ── -->
+    <div class="view" id="view3">
+      <div class="result-card">
+        <div class="result-icon" id="resultIcon">✅</div>
+        <div class="result-title" id="resultTitle">Import complete!</div>
+        <div class="result-sub" id="resultSub">Your leads have been added to your database.</div>
+
+        <div class="result-stats">
+          <div class="result-stat">
+            <div class="result-stat-val" style="color:var(--green)" id="rImported">—</div>
+            <div class="result-stat-lbl">Leads imported</div>
+          </div>
+          <div class="result-stat">
+            <div class="result-stat-val" style="color:var(--muted)" id="rSkipped">—</div>
+            <div class="result-stat-lbl">Rows skipped</div>
+          </div>
+          <div class="result-stat">
+            <div class="result-stat-val" id="rTotal">—</div>
+            <div class="result-stat-lbl">Total rows</div>
+          </div>
+        </div>
+
+        <!-- Enrichment section -->
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:1.5rem;margin-bottom:1.5rem;text-align:left;">
+          <div style="display:flex;align-items:flex-start;gap:1rem;margin-bottom:1rem;">
+            <div style="font-size:1.5rem;">✨</div>
+            <div>
+              <div style="font-weight:500;font-size:0.95rem;margin-bottom:4px;">Enrich with AI</div>
+              <div style="font-size:0.82rem;color:var(--muted);line-height:1.5;">
+                Let AI analyse each company and fill in missing details — industry, company size, pain points, and a suggested email subject line. Uses Groq (fast &amp; free-tier friendly).
+              </div>
+            </div>
+          </div>
+
+          <div class="enrich-progress" id="enrichProgress">
+            <div class="progress-label">
+              <span id="enrichLabel">Enriching leads…</span>
+              <span id="enrichPct">0%</span>
+            </div>
+            <div class="progress-bar-track">
+              <div class="progress-bar-fill" id="enrichFill"></div>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
+            <button class="btn btn-green" id="enrichBtn" onclick="startEnrichment()">✨ Enrich imported leads</button>
+            <button class="btn btn-secondary" onclick="window.location.href='/leads.html'">Skip, go to leads →</button>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:0.75rem;justify-content:center;flex-wrap:wrap;">
+          <button class="btn btn-primary" onclick="window.location.href='/leads.html'">View leads →</button>
+          <button class="btn btn-secondary" onclick="resetUpload()">Import another file</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="/scanCard.js"></script>
+
+<script>
+const API   = 'http://localhost:8000/api';
+const token = localStorage.getItem('sf_token');
+if (!token) window.location.href = '/login.html';
+
+let uploadedData = null;   // response from /upload-preview
+let importedIds  = [];
+
+
+const LEAD_FIELDS = [
+  { value: '',                 label: '— Skip this column —' },
+  { value: 'company_name',     label: 'Company name' },
+  { value: 'contact_name',     label: 'Contact / Owner name' },
+  { value: 'email',            label: 'Email address' },
+  { value: 'mobile',           label: 'Mobile / WhatsApp' },
+  { value: 'phone',            label: 'Phone / Landline' },
+  { value: 'city',             label: 'City' },
+  { value: 'state',            label: 'State' },
+  { value: 'business_details', label: 'Business details / Description' },
+  { value: 'website',          label: 'Website URL' },
+  { value: 'address',          label: 'Full address' },
+];
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+async function apiFetch(path, opts = {}) {
+  const r = await fetch(API + path, {
+    ...opts,
+    headers: { 'Authorization': 'Bearer ' + token, ...(opts.headers || {}) }
+  });
+  if (r.status === 401) { window.location.href = '/login.html'; return null; }
+  return r.json();
+}
+
+function showError(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.classList.add('show');
+}
+
+function hideError(id) {
+  document.getElementById(id).classList.remove('show');
+}
+
+function goStep(n) {
+  [1, 2, 3].forEach(i => {
+    document.getElementById('view' + i).classList.toggle('active', i === n);
+    const s = document.getElementById('stepEl' + i);
+    s.classList.remove('active', 'done');
+    if (i < n)  s.classList.add('done');
+    if (i === n) s.classList.add('active');
+  });
+}
+
+// ── File upload ───────────────────────────────────────────────────────────────
+function setupDropZone() {
+  const zone = document.getElementById('dropZone');
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragging'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('dragging'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('dragging');
+    const f = e.dataTransfer.files[0];
+    if (f) processFile(f);
+  });
+
+  document.getElementById('fileInput').addEventListener('change', e => {
+    if (e.target.files[0]) processFile(e.target.files[0]);
+  });
+}
+
+async function processFile(file) {
+  hideError('uploadError');
+  const dropZone = document.getElementById('dropZone');
+  dropZone.innerHTML = '<div class="spinner"></div><div style="margin-top:1rem;color:var(--muted);font-size:0.88rem;">Parsing ' + file.name + '…</div>';
+
+  const form = new FormData();
+  form.append('file', file);
+
+  const r = await fetch(API + '/leads/upload-preview', {
+    method:  'POST',
+    headers: { 'Authorization': 'Bearer ' + token },
+    body:    form,
+  });
+
+  // Restore drop zone
+  dropZone.innerHTML = `
+    <div class="upload-icon">📂</div>
+    <div class="upload-title">Drop your file here</div>
+    <div class="upload-sub">Upload a CSV or Excel file exported from any CRM, Google Sheets,<br/>or database. We'll auto-detect the columns.</div>
+    <div class="upload-formats"><span class="fmt-chip">.csv</span><span class="fmt-chip">.xlsx</span><span class="fmt-chip">.xls</span></div>
+    <button class="upload-btn" onclick="document.getElementById('fileInput').click()">Choose file</button>
+    <input type="file" id="fileInput" accept=".csv,.xlsx,.xls"/>
+  `;
+  document.getElementById('fileInput').addEventListener('change', e => {
+    if (e.target.files[0]) processFile(e.target.files[0]);
+  });
+
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({}));
+    showError('uploadError', err.detail || 'Failed to parse file');
+    return;
+  }
+
+  uploadedData = await r.json();
+  buildMappingUI();
+  goStep(2);
+}
+
+// ── Column mapping UI ─────────────────────────────────────────────────────────
+function buildMappingUI() {
+  document.getElementById('fileInfoName').textContent = uploadedData.filename || 'Uploaded file';
+  document.getElementById('fileInfoRows').textContent = uploadedData.total_rows.toLocaleString('en-IN') + ' rows detected';
+
+  const auto  = uploadedData.auto_map || {};
+  const tbody = document.getElementById('mappingBody');
+  tbody.innerHTML = '';
+
+  uploadedData.columns.forEach(col => {
+    const sample = (uploadedData.preview_rows[0] || {})[col] || '';
+    const autoVal = auto[col] || '';
+    const isAuto  = !!autoVal;
+
+    const options = LEAD_FIELDS.map(f =>
+      `<option value="${f.value}" ${f.value === autoVal ? 'selected' : ''}>${f.label}</option>`
+    ).join('');
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>
+        <div class="col-name">${col}${isAuto ? '<span class="auto-badge">auto</span>' : ''}</div>
+      </td>
+      <td><div class="col-sample">${String(sample).slice(0, 40) || '—'}</div></td>
+      <td>
+        <select class="map-select ${autoVal ? 'mapped' : ''}" data-col="${col}" onchange="onMapChange(this)">
+          ${options}
+        </select>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  renderPreview();
+}
+
+
+
+
+function onMapChange(sel) {
+  sel.classList.toggle('mapped', !!sel.value);
+  renderPreview();
+}
+
+function getCurrentMappings() {
+  const map = {};
+  document.querySelectorAll('.map-select').forEach(s => {
+    if (s.value) map[s.dataset.col] = s.value;
+  });
+  return map;
+}
+
+function renderPreview() {
+  const map   = getCurrentMappings();
+  const rows  = (uploadedData.preview_rows || []).slice(0, 5);
+  const fields = Object.values(map).filter(Boolean);
+
+  if (!fields.length) {
+    document.getElementById('previewHead').innerHTML = '<tr><th>No columns mapped yet</th></tr>';
+    document.getElementById('previewBody').innerHTML = '';
+    return;
+  }
+
+  // Header
+  const colToField = Object.fromEntries(Object.entries(map));
+  const fieldNames = LEAD_FIELDS.reduce((acc, f) => { acc[f.value] = f.label; return acc; }, {});
+
+  document.getElementById('previewHead').innerHTML =
+    '<tr>' + Object.entries(colToField).map(([col, field]) =>
+      `<th>${fieldNames[field] || field}</th>`
+    ).join('') + '</tr>';
+
+  document.getElementById('previewBody').innerHTML = rows.map(row =>
+    '<tr>' + Object.keys(colToField).map(col =>
+      `<td>${String(row[col] || '').slice(0, 40)}</td>`
+    ).join('') + '</tr>'
+  ).join('');
+}
+
+// ── Confirm import ────────────────────────────────────────────────────────────
+async function confirmImport() {
+  hideError('mappingError');
+  const map = getCurrentMappings();
+
+  if (!Object.keys(map).length) {
+    showError('mappingError', 'Please map at least one column before importing.');
+    return;
+  }
+  if (!Object.values(map).some(f => f === 'company_name' || f === 'email')) {
+    showError('mappingError', 'Please map at least a Company name or Email column.');
+    return;
+  }
+
+  const btn = document.getElementById('confirmBtn');
+  btn.textContent = 'Importing…';
+  btn.disabled    = true;
+
+  const r = await fetch(API + '/leads/import-confirm', {
+    method:  'POST',
+    headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+    body:    JSON.stringify({ mappings: map, rows: uploadedData.all_rows }),
+  });
+
+  btn.textContent = 'Import leads →';
+  btn.disabled    = false;
+
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({}));
+    showError('mappingError', err.detail || 'Import failed. Please try again.');
+    return;
+  }
+
+  const result = await r.json();
+  showResult(result);
+  goStep(3);
+}
+
+function showResult(result) {
+  document.getElementById('rImported').textContent = result.imported.toLocaleString('en-IN');
+  document.getElementById('rSkipped').textContent  = result.skipped.toLocaleString('en-IN');
+  document.getElementById('rTotal').textContent    = result.total.toLocaleString('en-IN');
+
+  if (result.imported === 0) {
+    document.getElementById('resultIcon').textContent  = '⚠️';
+    document.getElementById('resultTitle').textContent = 'Nothing imported';
+    document.getElementById('resultSub').textContent   = 'All rows were skipped. Check that Company name or Email columns are mapped.';
+    document.getElementById('enrichBtn').style.display = 'none';
+  } else {
+    document.getElementById('resultSub').textContent = result.imported + ' new leads are now in your database.';
+  }
+
+  // Store last batch size for enrichment
+  window._lastImportCount = result.imported;
+}
+
+// ── AI Enrichment ─────────────────────────────────────────────────────────────
+async function startEnrichment() {
+  const btn = document.getElementById('enrichBtn');
+  btn.disabled = true;
+  btn.textContent = 'Enriching…';
+
+  document.getElementById('enrichProgress').classList.add('show');
+
+  // Kick off enrichment job for the most recently imported leads (source=import)
+  // We pass limit: how many we imported (up to 100) via a special call
+  const count = Math.min(window._lastImportCount || 50, 100);
+
+  // Fetch the most recently imported leads from the leads API
+  const leadsData = await apiFetch('/leads/search?status=&limit=' + count + '&page=1');
+  if (!leadsData || !leadsData.leads.length) {
+    btn.textContent = '✨ Enrich imported leads';
+    btn.disabled = false;
+    return;
+  }
+
+  const ids = leadsData.leads.slice(0, 100).map(l => l.id);
+
+  const job = await apiFetch('/enrichment/enrich', {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({ lead_ids: ids, overwrite: false }),
+  });
+
+  if (!job || !job.job_id) {
+    btn.textContent = '✨ Enrich imported leads';
+    btn.disabled    = false;
+    return;
+  }
+
+  // Poll job status
+  pollEnrichment(job.job_id, job.total);
+}
+
+async function pollEnrichment(jobId, total) {
+  const r = await apiFetch('/enrichment/status/' + jobId);
+  if (!r) return;
+
+  const pct  = total > 0 ? Math.round((r.completed / total) * 100) : 0;
+  document.getElementById('enrichFill').style.width = pct + '%';
+  document.getElementById('enrichPct').textContent  = pct + '%';
+  document.getElementById('enrichLabel').textContent =
+    `Enriched ${r.completed} of ${r.total} leads…`;
+
+  if (r.status !== 'completed') {
+    setTimeout(() => pollEnrichment(jobId, total), 1500);
+  } else {
+    document.getElementById('enrichLabel').textContent = '✓ Enrichment complete!';
+    document.getElementById('enrichPct').textContent   = '100%';
+    document.getElementById('enrichFill').style.width  = '100%';
+    document.getElementById('enrichBtn').textContent   = '✓ Done';
+    document.getElementById('enrichBtn').style.background = 'rgba(61,220,151,0.15)';
+  }
+}
+
+// ── Reset ─────────────────────────────────────────────────────────────────────
+function resetUpload() {
+  uploadedData = null;
+  importedIds  = [];
+  document.getElementById('enrichProgress').classList.remove('show');
+  document.getElementById('enrichBtn').disabled = false;
+  document.getElementById('enrichBtn').textContent = '✨ Enrich imported leads';
+  goStep(1);
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+document.querySelectorAll('.nav-item[href]').forEach(a => {
+  if (window.location.pathname.includes(a.getAttribute('href').replace('/', ''))) a.classList.add('active');
+});
+
+setupDropZone();
+
+window.SF_TOKEN = localStorage.getItem('sf_token');
+  window.SF_API   = API;
+
+  const _origDropZone = document.getElementById('dropZone').innerHTML;
+
+  window.ScanCard_onLoading = (isLoading) => {
+    const dz = document.getElementById('dropZone');
+    if (isLoading) {
+      dz.innerHTML = '<div class="spinner"></div><div style="margin-top:1rem;color:var(--muted);font-size:0.88rem;">AI is reading the card…</div>';
+    } else {
+      dz.innerHTML = _origDropZone;
+      setupDropZone(); // Essential to re-attach drag/drop listeners!
+    }
+  };
+  window.ScanCard_onError   = (msg) => showError('uploadError', msg);
+  window.ScanCard_onSuccess = (data) => {
+    uploadedData = data;
+    buildMappingUI();
+    goStep(2);
+  };
+</script>
+</body>
+</html>

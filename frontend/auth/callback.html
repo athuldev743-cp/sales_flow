@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Signing in... — SalesFlow</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400&family=DM+Sans:wght@400&display=swap" rel="stylesheet"/>
+<style>
+:root{--bg:#080810;--accent:#7c6dfa;--text:#e8e6f0;--muted:#6b6880;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+  background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;
+  min-height:100vh;display:flex;align-items:center;justify-content:center;
+  flex-direction:column;gap:1rem;
+}
+.spinner{
+  width:40px;height:40px;border:2px solid rgba(124,109,250,0.2);
+  border-top-color:var(--accent);border-radius:50%;
+  animation:spin 0.8s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+p{color:var(--muted);font-size:0.9rem;font-family:'DM Mono',monospace;}
+</style>
+</head>
+<body>
+<div class="spinner"></div>
+<p>Completing sign in...</p>
+<script>
+const params = new URLSearchParams(window.location.search);
+const token = params.get('token');
+const onboarding = params.get('onboarding');
+
+if (token) {
+  localStorage.setItem('sf_token', token);
+  if (onboarding === 'true') {
+    window.location.href = '/onboarding.html';
+  } else {
+    window.location.href = '/dashboard.html';
+  }
+} else {
+  window.location.href = '/login.html';
+}
+</script>
+</body>
+</html>

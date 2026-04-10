@@ -1,0 +1,39 @@
+# ─── OS FILES ────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ─── PYTHON / BACKEND ────────────────────────────────────────────────────────
+backend/venv/
+backend/__pycache__/
+backend/*.pyc
+backend/*.pyo
+backend/*.pyd
+backend/.pytest_cache/
+backend/dist/
+backend/build/
+
+# ─── DATABASES & RAG (CRITICAL: Blocks the 500MB file) ───────────────────────
+# This covers the root DB and the backend DB
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+backend/chroma_store/
+
+# ─── SECRETS & CONFIG ────────────────────────────────────────────────────────
+# Never push your API keys (Groq, MongoDB, etc.)
+backend/.env
+.env
+
+# ─── USER DATA / UPLOADS ─────────────────────────────────────────────────────
+# Prevents pushing client leads or excel files to GitHub
+backend/*.xlsx
+backend/*.csv
+backend/*.pdf
+
+# ─── FRONTEND ────────────────────────────────────────────────────────────────
+# If you eventually use npm/next.js, these are covered
+node_modules/
+.next/
+out/
+.parcel-cache/

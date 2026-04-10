@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Campaigns — SalesFlow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#080810;--surface:#0f0f1a;--surface2:#141422;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.12);
+  --accent:#7c6dfa;--accent2:#e8632a;
+  --text:#e8e6f0;--muted:#6b6880;--green:#3ddc97;
+  --sidebar:240px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;display:flex;min-height:100vh;}
+.sidebar{width:var(--sidebar);flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;padding:1.5rem 1.25rem;}
+.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:1.2rem;letter-spacing:-0.02em;padding:0 0.5rem;margin-bottom:1.5rem;}
+.logo span{color:var(--accent);}
+.nav-item{display:flex;align-items:center;gap:10px;padding:0.6rem 0.75rem;border-radius:8px;cursor:pointer;font-size:0.88rem;color:var(--muted);text-decoration:none;margin:1px 0;transition:background .15s;}
+.nav-item:hover{background:rgba(255,255,255,0.04);color:var(--text);}
+.nav-item.active{background:rgba(124,109,250,0.1);color:var(--text);}
+.main{margin-left:var(--sidebar);flex:1;}
+.topbar{border-bottom:1px solid var(--border);padding:1rem 2rem;display:flex;align-items:center;gap:1rem;background:rgba(8,8,16,0.9);backdrop-filter:blur(10px);position:sticky;top:0;z-index:40;}
+.topbar-title{font-family:'Syne',sans-serif;font-weight:700;font-size:1.1rem;margin-right:auto;}
+.btn{padding:0.6rem 1.25rem;border-radius:7px;font-size:0.88rem;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:opacity .2s,transform .15s;border:none;}
+.btn:hover{opacity:0.85;transform:translateY(-1px);}
+.btn:disabled{opacity:0.45;cursor:not-allowed;transform:none;}
+.btn-primary{background:var(--accent);color:#fff;}
+.btn-secondary{background:transparent;border:1px solid var(--border2);color:var(--muted);}
+.btn-danger{background:rgba(226,75,74,0.15);color:#f09595;border:1px solid rgba(226,75,74,0.2);}
+.btn-green{background:rgba(61,220,151,0.1);color:var(--green);border:1px solid rgba(61,220,151,0.2);}
+.page{padding:2rem;}
+.view{display:none;}
+.view.active{display:block;}
+
+.campaign-grid{display:flex;flex-direction:column;gap:1rem;margin-top:1.5rem;}
+.campaign-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.25rem 1.5rem;display:flex;align-items:center;gap:1.5rem;cursor:pointer;transition:border-color .15s;}
+.campaign-card:hover{border-color:var(--border2);}
+.camp-info{flex:1;}
+.camp-name{font-weight:500;font-size:0.95rem;margin-bottom:4px;}
+.camp-meta{font-size:0.8rem;color:var(--muted);}
+.camp-stats{display:flex;gap:1.5rem;text-align:right;}
+.camp-stat-val{font-family:'Syne',sans-serif;font-weight:700;font-size:1.3rem;}
+.camp-stat-lbl{font-size:0.72rem;color:var(--muted);}
+.status-badge{padding:3px 10px;border-radius:20px;font-size:0.72rem;font-family:'DM Mono',monospace;font-weight:500;}
+.status-badge.running{background:rgba(61,220,151,0.1);color:var(--green);}
+.status-badge.completed{background:rgba(124,109,250,0.1);color:var(--accent);}
+.status-badge.paused{background:rgba(232,99,42,0.1);color:var(--accent2);}
+.status-badge.draft{background:rgba(255,255,255,0.05);color:var(--muted);}
+
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-top:1.5rem;}
+.form-full{grid-column:1/-1;}
+.field{display:flex;flex-direction:column;gap:0.4rem;}
+.field label{font-size:0.82rem;font-weight:500;color:var(--text);}
+.field label span{color:var(--muted);font-weight:400;}
+.field input,.field textarea,.field select{background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:0.75rem 1rem;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.9rem;outline:none;transition:border-color .2s;resize:vertical;}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--accent);}
+.field textarea{min-height:140px;line-height:1.7;}
+.field .hint{font-size:0.75rem;color:var(--muted);}
+
+.lead-sources-wrap{background:var(--surface);border:1px solid var(--border2);border-radius:12px;overflow:hidden;}
+.lead-sources-tabs{display:flex;border-bottom:1px solid var(--border);}
+.src-tab{flex:1;padding:0.7rem 0.5rem;text-align:center;font-size:0.8rem;font-weight:500;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;transition:color .15s,border-color .15s;background:none;border-top:none;border-left:none;border-right:none;font-family:'DM Sans',sans-serif;}
+.src-tab:hover{color:var(--text);}
+.src-tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.src-panel{display:none;padding:1.25rem;}
+.src-panel.active{display:block;}
+
+.lead-selector-header{display:flex;align-items:center;gap:0.75rem;margin-bottom:0.75rem;}
+.lead-selector-search{flex:1;background:var(--surface2);border:1px solid var(--border2);border-radius:7px;padding:0.6rem 0.9rem;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.88rem;outline:none;}
+.lead-selector-search:focus{border-color:var(--accent);}
+.lead-selector-search::placeholder{color:var(--muted);}
+.lead-list{max-height:260px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;}
+.lead-row{display:flex;align-items:center;gap:10px;padding:0.6rem 1rem;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s;}
+.lead-row:last-child{border-bottom:none;}
+.lead-row:hover{background:rgba(124,109,250,0.04);}
+.lead-row.selected{background:rgba(124,109,250,0.08);}
+.lead-row input[type=checkbox]{accent-color:var(--accent);cursor:pointer;flex-shrink:0;}
+.lead-row-info{flex:1;min-width:0;}
+.lead-row-company{font-size:0.85rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.lead-row-meta{font-size:0.75rem;color:var(--muted);}
+.lead-row-email{font-size:0.75rem;color:var(--accent);}
+
+.mini-drop{border:2px dashed var(--border2);border-radius:10px;padding:2rem;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;position:relative;}
+.mini-drop:hover,.mini-drop.dragging{border-color:var(--accent);background:rgba(124,109,250,0.03);}
+.mini-drop-icon{font-size:1.8rem;margin-bottom:0.5rem;}
+.mini-drop-title{font-size:0.88rem;font-weight:500;margin-bottom:4px;}
+.mini-drop-sub{font-size:0.78rem;color:var(--muted);}
+.fmt-chips{display:flex;gap:0.4rem;justify-content:center;margin-top:0.75rem;flex-wrap:wrap;}
+.fmt-chip{background:var(--surface2);border:1px solid var(--border2);border-radius:5px;padding:2px 8px;font-size:0.7rem;font-family:'DM Mono',monospace;color:var(--muted);}
+.upload-result{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:0.75rem 1rem;margin-top:0.75rem;font-size:0.82rem;display:none;}
+.upload-result.show{display:flex;align-items:center;gap:0.75rem;}
+.upload-result .ur-count{font-family:'Syne',sans-serif;font-weight:700;font-size:1.2rem;color:var(--green);}
+.upload-result .ur-label{color:var(--muted);}
+
+.single-email-form{display:flex;flex-direction:column;gap:0.75rem;}
+.single-email-form input{background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:0.65rem 0.9rem;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.88rem;outline:none;transition:border-color .2s;}
+.single-email-form input:focus{border-color:var(--accent);}
+.single-email-form input::placeholder{color:var(--muted);}
+.single-row{display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;}
+
+.bulk-textarea{width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:0.75rem 1rem;color:var(--text);font-family:'DM Mono',monospace;font-size:0.8rem;outline:none;resize:vertical;min-height:120px;line-height:1.6;transition:border-color .2s;}
+.bulk-textarea:focus{border-color:var(--accent);}
+.bulk-textarea::placeholder{color:var(--muted);}
+.bulk-parse-preview{font-size:0.75rem;color:var(--muted);margin-top:0.4rem;min-height:18px;}
+.bulk-parse-preview span{color:var(--green);}
+
+.selected-bar{display:flex;align-items:center;justify-content:space-between;padding:0.7rem 1.25rem;background:rgba(124,109,250,0.05);border-top:1px solid var(--border);}
+.selected-bar-left{font-size:0.82rem;color:var(--muted);}
+.selected-bar-left strong{color:var(--text);}
+.selected-bar-right{display:flex;align-items:center;gap:0.75rem;font-size:0.75rem;color:var(--muted);}
+
+.preview-panel{background:var(--surface);border:1px solid var(--border2);border-radius:10px;overflow:hidden;}
+.preview-header{padding:0.75rem 1rem;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.preview-header span{font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--muted);}
+.preview-subject{padding:0.75rem 1rem;border-bottom:1px solid var(--border);font-weight:500;font-size:0.9rem;min-height:40px;}
+.preview-body{padding:1rem;font-size:0.88rem;line-height:1.8;color:var(--muted);min-height:160px;}
+
+.toggle-row{display:flex;align-items:center;gap:10px;padding:0.75rem 0;}
+.toggle-track{position:relative;width:36px;height:20px;background:var(--border2);border-radius:10px;transition:background .2s;cursor:pointer;flex-shrink:0;}
+.toggle-track.on{background:var(--accent);}
+.toggle-knob{position:absolute;top:2px;left:2px;width:16px;height:16px;background:#fff;border-radius:50%;transition:transform .2s;}
+.toggle-track.on .toggle-knob{transform:translateX(16px);}
+.toggle-label{font-size:0.88rem;color:var(--text);}
+.toggle-sub{font-size:0.78rem;color:var(--muted);}
+
+.detail-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.5rem;}
+.detail-stat{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1rem;}
+.detail-stat-val{font-family:'Syne',sans-serif;font-weight:800;font-size:1.8rem;letter-spacing:-0.02em;}
+.detail-stat-lbl{font-size:0.75rem;color:var(--muted);margin-top:2px;}
+.leads-table{width:100%;border-collapse:collapse;font-size:0.85rem;}
+.leads-table th{text-align:left;padding:0.6rem 1rem;border-bottom:1px solid var(--border);font-size:0.72rem;font-family:'DM Mono',monospace;color:var(--muted);letter-spacing:0.05em;font-weight:400;}
+.leads-table td{padding:0.6rem 1rem;border-bottom:1px solid var(--border);color:var(--muted);}
+.leads-table td:first-child{color:var(--text);}
+.leads-table tr:last-child td{border-bottom:none;}
+
+.fail-reasons{background:rgba(226,75,74,0.05);border:1px solid rgba(226,75,74,0.15);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:0.82rem;}
+.fail-reasons h4{color:#f09595;font-size:0.78rem;font-family:'DM Mono',monospace;letter-spacing:0.05em;margin-bottom:0.5rem;}
+.fail-reason-row{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(226,75,74,0.08);}
+.fail-reason-row:last-child{border-bottom:none;}
+.fail-reason-row span:last-child{color:#f09595;font-family:'DM Mono',monospace;}
+
+.empty{text-align:center;padding:4rem;color:var(--muted);}
+.empty h3{font-size:1rem;color:var(--text);margin-bottom:0.5rem;}
+.spinner{width:24px;height:24px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 0.75rem;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.error-msg{background:rgba(226,75,74,0.1);border:1px solid rgba(226,75,74,0.2);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1rem;font-size:0.85rem;color:#f09595;display:none;}
+.error-msg.show{display:block;}
+.success-msg{background:rgba(61,220,151,0.1);border:1px solid rgba(61,220,151,0.2);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1rem;font-size:0.85rem;color:var(--green);display:none;}
+.success-msg.show{display:block;}
+.loading-inline{display:inline-flex;align-items:center;gap:6px;font-size:0.8rem;color:var(--muted);}
+.spinner-sm{width:14px;height:14px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;}
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="logo">Sales<span>Flow</span></div>
+  <a class="nav-item" href="/dashboard.html">⬛ Dashboard</a>
+  <a class="nav-item" href="/leads.html">◉ Leads</a>
+  <a class="nav-item active" href="/campaigns.html">✉ Campaigns</a>
+  <a class="nav-item" href="/inbox.html">💬 Replies</a>
+  <a class="nav-item" href="/meetings.html">📅 Meetings</a>
+  
+  <a class="nav-item" href="/upload.html">📂 Upload Leads</a>
+</aside>
+
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title" id="topbarTitle">Campaigns</div>
+    <button class="btn btn-secondary" id="backBtn" onclick="showList()" style="display:none;">← Back</button>
+    <button class="btn btn-primary" id="newCampBtn" onclick="showCreate()">+ New campaign</button>
+  </div>
+
+  <div class="page">
+    <div class="error-msg"   id="errorMsg"></div>
+    <div class="success-msg" id="successMsg"></div>
+
+    <!-- LIST VIEW -->
+    <div class="view active" id="viewList">
+      <div id="campList">
+        <div class="empty"><div class="spinner"></div><p>Loading campaigns...</p></div>
+      </div>
+    </div>
+
+    <!-- CREATE VIEW -->
+    <div class="view" id="viewCreate">
+      <div class="form-grid">
+
+        <div class="field form-full">
+          <label>Campaign name</label>
+          <input type="text" id="campName" placeholder="e.g. Automotive Parts Outreach — April"/>
+        </div>
+
+        <div class="field">
+          <label>Daily send limit <span>(max 450)</span></label>
+          <input type="number" id="dailyLimit" value="50" min="1" max="450"
+            oninput="document.getElementById('dailyLimitDisplay').textContent=this.value"/>
+          <div class="hint">We'll send this many per day and auto-pause for the rest.</div>
+        </div>
+
+        <div class="field">
+          <label>Send order</label>
+          <select id="sendOrder">
+            <option value="as_selected">As selected</option>
+            <option value="random">Random (avoids pattern detection)</option>
+          </select>
+        </div>
+
+        <div class="field form-full">
+          <label>Email subject <span>(use {lead_company} for personalisation)</span></label>
+          <input type="text" id="campSubject" placeholder="Quick question for {lead_company}"
+            oninput="schedulePreview()"/>
+        </div>
+
+        <div class="field form-full">
+          <label>Email body <span>({lead_name}, {lead_company} auto-replaced)</span></label>
+          <textarea id="campBody" style="min-height:200px;"
+            placeholder="Hi {lead_name},&#10;&#10;I noticed {lead_company} specialises in..."
+            oninput="schedulePreview()"></textarea>
+          <div class="hint" style="color:var(--accent);font-weight:500;">
+            ✨ Your professional signature and brand colors are added automatically. No need to sign off!
+          </div>
+        </div>
+
+        <div class="field form-full">
+          <div class="toggle-row">
+            <div class="toggle-track on" id="personaliseToggle" onclick="togglePersonalise()">
+              <div class="toggle-knob"></div>
+            </div>
+            <div>
+              <div class="toggle-label">AI personalisation</div>
+              <div class="toggle-sub">Groq rewrites each email using the lead's business details</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ADD LEADS -->
+        <div class="field form-full">
+          <label>Add leads <span>(search your database, scan a card, or upload files)</span></label>
+          <div class="lead-sources-wrap">
+
+            <div class="lead-sources-tabs">
+              <button class="src-tab active" onclick="switchTab('search', this)">🔍 Search DB</button>
+              <button class="src-tab" onclick="switchTab('upload', this)">📄 Upload File</button>
+              <button class="src-tab" onclick="switchTab('scan', this)">📇 Scan Card</button>
+              <button class="src-tab" onclick="switchTab('single', this)">📧 Single Email</button>
+              <button class="src-tab" onclick="switchTab('bulk', this)">📋 Paste Bulk</button>
+            </div>
+
+            <div class="src-panel active" id="panelSearch">
+              <div class="lead-selector-header">
+                <input class="lead-selector-search" id="leadSearch" placeholder="Search by company, city, business type…" autocomplete="off"/>
+                <button class="btn btn-secondary" style="padding:5px 12px;font-size:0.8rem;" onclick="searchLeads()">Search</button>
+                <button class="btn btn-secondary" style="padding:5px 12px;font-size:0.8rem;" onclick="selectAllVisible()">All</button>
+              </div>
+              <div class="lead-list" id="leadList">
+                <div style="padding:1.25rem;text-align:center;color:var(--muted);font-size:0.85rem;">
+                  Search to find leads from your database
+                </div>
+              </div>
+            </div>
+
+            <div class="src-panel" id="panelUpload">
+              <div class="mini-drop" id="miniDrop" onclick="document.getElementById('campFileInput').click()">
+                <div class="mini-drop-icon">📂</div>
+                <div class="mini-drop-title">Drop any file or click to browse</div>
+                <div class="mini-drop-sub">CSV, Excel, PDF, TXT, JSON — emails + company details extracted automatically</div>
+                <div class="fmt-chips">
+                  <span class="fmt-chip">.csv</span>
+                  <span class="fmt-chip">.xlsx</span>
+                  <span class="fmt-chip">.xls</span>
+                  <span class="fmt-chip">.pdf</span>
+                  <span class="fmt-chip">.txt</span>
+                  <span class="fmt-chip">.json</span>
+                </div>
+              </div>
+              <!-- ✅ FIX 1: accept all file types, not just a hardcoded subset -->
+              <input type="file" id="campFileInput" accept="*/*" style="display:none;"/>
+              <div class="upload-result" id="uploadResult">
+                <div class="ur-count" id="urCount">0</div>
+                <div class="ur-label">
+                  leads extracted and added to campaign
+                  <div id="urPreview" style="color:var(--accent);margin-top:2px;font-size:0.75rem;"></div>
+                </div>
+              </div>
+              <div id="uploadLoading" style="display:none;margin-top:0.75rem;">
+                <div class="loading-inline"><div class="spinner-sm"></div> Extracting leads…</div>
+              </div>
+            </div>
+
+            <div class="src-panel" id="panelScan">
+              <div class="mini-drop" onclick="ScanCard.open()">
+                <div class="mini-drop-icon">📸</div>
+                <div class="mini-drop-title">Open Business Card Scanner</div>
+                <div class="mini-drop-sub">Snap a photo — AI extracts name, email, company, mobile & more</div>
+              </div>
+              <div id="scanLoading" style="display:none;margin-top:0.75rem;">
+                <div class="loading-inline"><div class="spinner-sm"></div> AI is reading the card…</div>
+              </div>
+            </div>
+
+            <div class="src-panel" id="panelSingle">
+  <div class="single-email-form">
+    <input type="email" id="singleEmail" placeholder="example@company.com"/>
+    <div class="single-row">
+      <input type="text" id="singleName" placeholder="Contact name (optional)"/>
+      <input type="text" id="singleCompany" placeholder="Company name (optional)"/>
+    </div>
+    <textarea id="singleBiz" placeholder="What does their business do? (optional — used to personalise the email)" style="background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:0.65rem 0.9rem;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.88rem;outline:none;resize:vertical;min-height:70px;width:100%;transition:border-color .2s;"></textarea>
+    <button class="btn btn-primary" style="width:fit-content;" onclick="addSingleEmail()">Add to campaign →</button>
+    <div id="singleResult" style="font-size:0.82rem;color:var(--muted);display:none;"></div>
+  </div>
+</div>
+
+            <div class="src-panel" id="panelBulk">
+              <textarea class="bulk-textarea" id="bulkText" placeholder="Paste emails here (one per line, or comma separated)..." oninput="previewBulkEmails()"></textarea>
+              <div class="bulk-parse-preview" id="bulkPreview"></div>
+              <button class="btn btn-primary" style="margin-top:0.75rem;width:fit-content;" onclick="addBulkEmails()">Add to campaign →</button>
+            </div>
+
+            <div class="selected-bar">
+              <div class="selected-bar-left">
+                <strong id="selectedCount">0</strong> leads selected
+              </div>
+              <div class="selected-bar-right">
+                Daily limit: <strong style="color:var(--text);" id="dailyLimitDisplay">50</strong>/day
+                &nbsp;·&nbsp;
+                <button class="btn btn-secondary" style="padding:3px 10px;font-size:0.75rem;" onclick="clearSelected()">Clear all</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="scannerOverlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(8,8,16,0.98);z-index:1000;flex-direction:column;align-items:center;justify-content:center;padding:20px;">
+          <div style="font-family:'Syne',sans-serif;font-weight:700;margin-bottom:15px;color:var(--text);">Align Business Card in Frame</div>
+          <video id="scannerVideo" width="100%" style="border-radius:16px;border:2px solid var(--accent2);max-width:500px;aspect-ratio:3/2;object-fit:cover;" autoplay playsinline></video>
+          <div style="margin-top:25px;display:flex;gap:15px;">
+            <button class="btn btn-primary" style="background:var(--accent2);" onclick="captureCard()">Capture & Process</button>
+            <button class="btn btn-secondary" onclick="closeScanner()">Cancel</button>
+          </div>
+          <canvas id="scannerCanvas" style="display:none;"></canvas>
+        </div>
+
+        <!-- Preview panel -->
+        <div class="field form-full">
+          <label>Preview for lead <span id="currentLeadIndex">1</span> of <span id="totalLeadCount">0</span></label>
+          <div class="preview-panel">
+            <div class="preview-header">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <button class="btn btn-secondary" style="padding:2px 8px;" onclick="prevPreview()" id="prevPreviewBtn" disabled>←</button>
+                <span>LIVE PREVIEW</span>
+                <button class="btn btn-secondary" style="padding:2px 8px;" onclick="nextPreview()" id="nextPreviewBtn" disabled>→</button>
+              </div>
+              <button class="btn btn-secondary" style="padding:3px 10px;font-size:0.75rem;" onclick="loadPreview()">↻ Refresh</button>
+            </div>
+            <div class="preview-subject" id="previewSubject" style="color:var(--muted);">Select a lead to preview</div>
+            <div class="preview-body" id="previewBody" style="color:var(--muted);">—</div>
+          </div>
+        </div>
+
+        <div class="form-full" style="display:flex;gap:1rem;padding-top:1rem;border-top:1px solid var(--border);">
+          <button class="btn btn-primary" onclick="createCampaign()" id="sendBtn">Send campaign →</button>
+          <button class="btn btn-secondary" onclick="showList()">Cancel</button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- DETAIL VIEW -->
+    <div class="view" id="viewDetail">
+      <div class="detail-stats">
+        <div class="detail-stat"><div class="detail-stat-val" id="dTotal">—</div><div class="detail-stat-lbl">Total leads</div></div>
+        <div class="detail-stat"><div class="detail-stat-val" style="color:var(--green)" id="dSent">—</div><div class="detail-stat-lbl">Sent</div></div>
+        <div class="detail-stat"><div class="detail-stat-val" style="color:var(--accent2)" id="dFailed">—</div><div class="detail-stat-lbl">Failed / Bounced</div></div>
+        <div class="detail-stat"><div class="detail-stat-val" id="dStatus">—</div><div class="detail-stat-lbl">Status</div></div>
+      </div>
+      <div class="fail-reasons" id="failReasonsBox" style="display:none;">
+        <h4>FAILURE REASONS</h4>
+        <div id="failReasonsList"></div>
+      </div>
+      <div style="overflow-x:auto;background:var(--surface);border:1px solid var(--border);border-radius:10px;">
+        <table class="leads-table">
+          <thead><tr>
+            <th>Company</th><th>Email</th><th>Status</th><th>Error</th><th>Sent at</th>
+          </tr></thead>
+          <tbody id="detailLeads"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<script src="/scanCard.js"></script>
+<script>
+const API   = 'http://localhost:8000/api';
+const token = localStorage.getItem('sf_token');
+if (!token) window.location.href = '/login.html';
+
+let selectedLeads       = new Map();
+let personalise         = true;
+let previewTimer        = null;
+let currentPreviewIndex = 0;
+let scannerStream       = null;
+
+let _cachedUser = null;
+async function getUser() {
+  if (_cachedUser) return _cachedUser;
+  _cachedUser = await apiFetch('/auth/me');
+  return _cachedUser;
+}
+
+function showList() {
+  switchView('viewList');
+  document.getElementById('topbarTitle').textContent  = 'Campaigns';
+  document.getElementById('backBtn').style.display    = 'none';
+  document.getElementById('newCampBtn').style.display = 'block';
+  loadCampaigns();
+}
+
+function showCreate() {
+  switchView('viewCreate');
+  document.getElementById('topbarTitle').textContent  = 'New campaign';
+  document.getElementById('backBtn').style.display    = 'block';
+  document.getElementById('newCampBtn').style.display = 'none';
+
+  const t = localStorage.getItem('sf_email_template');
+  if (t) {
+    const m = t.match(/^SUBJECT:\s*(.+)$/mi);
+    if (m) {
+      document.getElementById('campSubject').value = m[1].trim();
+      let bodyText = t.replace(/^SUBJECT:\s*.+$/mi, '').trim();
+      bodyText = bodyText.replace(/^hi\s+\{lead_name\},?\s*/i, '');
+      bodyText = bodyText.replace(/^hi\s+there,?\s*/i, '');
+      bodyText = bodyText.split(/Best,|Regards,|Sincerely,/i)[0].trim();
+      document.getElementById('campBody').value = bodyText;
+    }
+  }
+}
+
+function showDetail(id) {
+  switchView('viewDetail');
+  document.getElementById('topbarTitle').textContent  = 'Campaign detail';
+  document.getElementById('backBtn').style.display    = 'block';
+  document.getElementById('newCampBtn').style.display = 'none';
+  loadDetail(id);
+}
+
+function switchView(id) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+async function apiFetch(path, opts = {}) {
+  try {
+    const r = await fetch(API + path, {
+      ...opts,
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Content-Type':  'application/json',
+        ...(opts.headers || {}),
+      },
+    });
+    if (r.status === 401) { window.location.href = '/login.html'; return null; }
+    return r.json();
+  } catch (e) {
+    console.error('apiFetch', e);
+    return null;
+  }
+}
+
+function switchTab(name, btn) {
+  document.querySelectorAll('.src-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.src-panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('panel' + name.charAt(0).toUpperCase() + name.slice(1)).classList.add('active');
+}
+
+async function loadCampaigns() {
+  document.getElementById('campList').innerHTML =
+    '<div class="empty"><div class="spinner"></div><p>Loading...</p></div>';
+  const data = await apiFetch('/campaigns/list');
+  if (!data) return;
+
+  if (!data.length) {
+    document.getElementById('campList').innerHTML =
+      '<div class="empty"><h3>No campaigns yet</h3><p>Create your first campaign to start sending emails.</p></div>';
+    return;
+  }
+
+  let html = '<div class="campaign-grid">';
+  data.forEach(c => {
+    const pct = c.total_leads > 0 ? Math.round((c.sent / c.total_leads) * 100) : 0;
+    html += `<div class="campaign-card" onclick="showDetail('${c.id}')">
+      <div class="camp-info">
+        <div class="camp-name">${c.name}</div>
+        <div class="camp-meta">${c.created_at ? new Date(c.created_at).toLocaleDateString('en-IN') : ''}</div>
+      </div>
+      <div class="camp-stats">
+        <div><div class="camp-stat-val">${c.total_leads.toLocaleString('en-IN')}</div><div class="camp-stat-lbl">leads</div></div>
+        <div><div class="camp-stat-val" style="color:var(--green)">${c.sent.toLocaleString('en-IN')}</div><div class="camp-stat-lbl">sent</div></div>
+        <div><div class="camp-stat-val">${pct}%</div><div class="camp-stat-lbl">done</div></div>
+      </div>
+      <span class="status-badge ${c.status}">${c.status.toUpperCase()}</span>
+    </div>`;
+  });
+  html += '</div>';
+  document.getElementById('campList').innerHTML = html;
+}
+
+async function searchLeads() {
+  const q = document.getElementById('leadSearch').value.trim();
+  if (!q) return;
+  document.getElementById('leadList').innerHTML =
+    '<div style="padding:1rem;text-align:center;color:var(--muted);font-size:0.85rem;"><div class="spinner" style="width:18px;height:18px;margin:0 auto 0.5rem;"></div>Searching…</div>';
+
+  const data = await apiFetch('/leads/search?q=' + encodeURIComponent(q) + '&limit=50');
+  if (!data || !data.leads) return;
+
+  if (!data.leads.length) {
+    document.getElementById('leadList').innerHTML =
+      '<div style="padding:1rem;text-align:center;color:var(--muted);font-size:0.85rem;">No leads found</div>';
+    return;
+  }
+
+  let html = '';
+  data.leads.forEach(lead => {
+    const isSel = selectedLeads.has(lead.id);
+    html += `<div class="lead-row ${isSel ? 'selected' : ''}" data-id="${lead.id}"
+        onclick="toggleLead(${lead.id}, this, ${JSON.stringify(lead).replace(/"/g, '&quot;')})">
+      <input type="checkbox" ${isSel ? 'checked' : ''}
+        onclick="event.stopPropagation();toggleLead(${lead.id},this.closest('.lead-row'),null)"/>
+      <div class="lead-row-info">
+        <div class="lead-row-company">${lead.company_name || 'Unknown'}</div>
+        <div class="lead-row-meta">${[lead.city, lead.state].filter(Boolean).join(', ')}</div>
+        <div class="lead-row-email">${lead.email || 'No email'}</div>
+      </div>
+    </div>`;
+  });
+  document.getElementById('leadList').innerHTML = html;
+}
+
+function toggleLead(id, row, leadData) {
+  id = parseInt(id);
+  if (selectedLeads.has(id)) {
+    selectedLeads.delete(id);
+    row.classList.remove('selected');
+    const cb = row.querySelector('input[type=checkbox]');
+    if (cb) cb.checked = false;
+  } else {
+    selectedLeads.set(id, leadData || { id });
+    row.classList.add('selected');
+    const cb = row.querySelector('input[type=checkbox]');
+    if (cb) cb.checked = true;
+  }
+  updateSelectedCount();
+  schedulePreview();
+}
+
+function selectAllVisible() {
+  document.querySelectorAll('.lead-row[data-id]').forEach(row => {
+    const id = parseInt(row.getAttribute('data-id'));
+    if (!selectedLeads.has(id)) {
+      selectedLeads.set(id, { id });
+      row.classList.add('selected');
+      const cb = row.querySelector('input[type=checkbox]');
+      if (cb) cb.checked = true;
+    }
+  });
+  updateSelectedCount();
+  schedulePreview();
+}
+
+function clearSelected() {
+  selectedLeads.clear();
+  document.querySelectorAll('.lead-row').forEach(row => {
+    row.classList.remove('selected');
+    const cb = row.querySelector('input[type=checkbox]');
+    if (cb) cb.checked = false;
+  });
+  updateSelectedCount();
+  document.getElementById('previewSubject').textContent = 'Select a lead to preview';
+  document.getElementById('previewBody').innerHTML = '<span style="color:var(--muted)">—</span>';
+}
+
+function updateSelectedCount() {
+  const total = selectedLeads.size;
+  document.getElementById('selectedCount').textContent  = total;
+  document.getElementById('totalLeadCount').textContent = total;
+  updateArrowButtons();
+}
+
+function updateArrowButtons() {
+  const total = selectedLeads.size;
+  document.getElementById('prevPreviewBtn').disabled = (currentPreviewIndex <= 0);
+  document.getElementById('nextPreviewBtn').disabled = (currentPreviewIndex >= total - 1);
+  document.getElementById('currentLeadIndex').textContent = total > 0 ? currentPreviewIndex + 1 : 1;
+}
+
+function nextPreview() { if (currentPreviewIndex < selectedLeads.size - 1) { currentPreviewIndex++; loadPreview(); } }
+function prevPreview() { if (currentPreviewIndex > 0) { currentPreviewIndex--; loadPreview(); } }
+
+// ── File upload ───────────────────────────────────────────────────────────────
+(function setupFileUpload() {
+  const drop  = document.getElementById('miniDrop');
+  const input = document.getElementById('campFileInput');
+  drop.addEventListener('dragover',  e => { e.preventDefault(); drop.classList.add('dragging'); });
+  drop.addEventListener('dragleave', ()  => drop.classList.remove('dragging'));
+  drop.addEventListener('drop', e => {
+    e.preventDefault(); drop.classList.remove('dragging');
+    if (e.dataTransfer.files[0]) uploadLeadFile(e.dataTransfer.files[0]);
+  });
+  input.addEventListener('change', e => { if (e.target.files[0]) uploadLeadFile(e.target.files[0]); });
+})();
+
+async function uploadLeadFile(file) {
+  document.getElementById('uploadResult').classList.remove('show');
+  document.getElementById('uploadLoading').style.display = 'block';
+
+  const form = new FormData();
+  form.append('file', file);
+
+  try {
+    const r = await fetch(API + '/campaigns/upload-leads', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token },
+      body: form,
+    });
+
+    document.getElementById('uploadLoading').style.display = 'none';
+
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      showError(err.detail || 'Upload failed');
+      return;
+    }
+
+    const data = await r.json();
+
+    // ✅ FIX 2: response now returns {lead_ids, total_found} — no "emails" field
+    const ids = data.lead_ids || [];
+    ids.forEach(id => { if (!selectedLeads.has(id)) selectedLeads.set(id, { id }); });
+
+    document.getElementById('urCount').textContent = data.total_found || ids.length;
+    // Show file name instead of emails preview (emails field removed from response)
+    document.getElementById('urPreview').textContent =
+      ids.length + ' leads added from ' + file.name;
+
+    document.getElementById('uploadResult').classList.add('show');
+    updateSelectedCount();
+    schedulePreview();
+
+  } catch (e) {
+    document.getElementById('uploadLoading').style.display = 'none';
+    showError('Upload failed: ' + e.message);
+  }
+}
+
+// ── Single email ──────────────────────────────────────────────────────────────
+async function addSingleEmail() {
+  const email   = document.getElementById('singleEmail').value.trim();
+  const name    = document.getElementById('singleName').value.trim();
+  const company = document.getElementById('singleCompany').value.trim();
+  const biz     = document.getElementById('singleBiz').value.trim();
+  if (!email || !email.includes('@')) { showError('Please enter a valid email address'); return; }
+  const resultEl = document.getElementById('singleResult');
+  resultEl.textContent = 'Adding…'; resultEl.style.display = 'block';
+  const data = await apiFetch('/campaigns/add-single-email', {
+    method: 'POST', body: JSON.stringify({ 
+      email, 
+      contact_name: name, 
+      company_name: company,
+      business_details: biz,
+    }),
+  });
+  if (!data) { resultEl.textContent = 'Failed to add'; return; }
+  const id = data.lead_ids[0];
+  if (!selectedLeads.has(id)) selectedLeads.set(id, { id, email, contact_name: name, company_name: company, business_details: biz });
+  resultEl.style.color = 'var(--green)';
+  resultEl.textContent = data.already_existed
+    ? `✓ ${email} already in your DB — added to campaign`
+    : `✓ ${email} saved and added to campaign`;
+  document.getElementById('singleEmail').value   = '';
+  document.getElementById('singleName').value    = '';
+  document.getElementById('singleCompany').value = '';
+  document.getElementById('singleBiz').value     = '';
+  updateSelectedCount(); schedulePreview();
+}
+
+// ── Bulk paste ────────────────────────────────────────────────────────────────
+const _EMAIL_RE = /[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g;
+
+function previewBulkEmails() {
+  const emails = [...new Set((document.getElementById('bulkText').value.match(_EMAIL_RE) || []).map(e => e.toLowerCase()))];
+  const el = document.getElementById('bulkPreview');
+  if (!emails.length) { el.innerHTML = ''; return; }
+  el.innerHTML = `<span>${emails.length} email${emails.length > 1 ? 's' : ''} found</span> — ${emails.slice(0,3).join(', ')}${emails.length > 3 ? ` …+${emails.length-3} more` : ''}`;
+}
+
+async function addBulkEmails() {
+  const raw = document.getElementById('bulkText').value.trim();
+  if (!raw) { showError('Paste some emails first'); return; }
+  const data = await apiFetch('/campaigns/add-bulk-emails', { method: 'POST', body: JSON.stringify({ raw_text: raw }) });
+  if (!data) return;
+  data.lead_ids.forEach(id => { if (!selectedLeads.has(id)) selectedLeads.set(id, { id }); });
+  showSuccess(`✓ ${data.total_found} emails added to campaign`);
+  document.getElementById('bulkText').value = '';
+  document.getElementById('bulkPreview').innerHTML = '';
+  updateSelectedCount(); schedulePreview();
+}
+
+// ── Preview ───────────────────────────────────────────────────────────────────
+function schedulePreview() {
+  clearTimeout(previewTimer);
+  previewTimer = setTimeout(loadPreview, 800);
+}
+
+async function loadPreview() {
+  if (selectedLeads.size === 0) return;
+  const subject = document.getElementById('campSubject').value.trim();
+  const body    = document.getElementById('campBody').value.trim();
+  if (!subject && !body) return;
+
+  const leadIds   = Array.from(selectedLeads.keys());
+  const currentId = leadIds[currentPreviewIndex];
+
+  const previewBodyEl = document.getElementById('previewBody');
+  previewBodyEl.innerHTML = '<div class="loading-inline"><div class="spinner-sm"></div> Generating preview…</div>';
+
+  const user      = await getUser();
+  const myName    = user?.full_name             || 'Your Name';
+  const myCompany = user?.profile?.company_name || '';
+  const myColor   = user?.profile?.brand_color  || '#7c6dfa';
+
+  const data = await apiFetch('/campaigns/preview', {
+    method: 'POST',
+    body:   JSON.stringify({ subject, body, lead_id: currentId, personalise }),
+  });
+
+  if (!data) {
+    previewBodyEl.innerHTML = '<span style="color:var(--accent2)">Preview failed — check console</span>';
+    return;
+  }
+
+  document.getElementById('previewSubject').textContent = data.subject || subject;
+
+  previewBodyEl.innerHTML = `
+    <div style="background:#f4f7ff;padding:20px;border-radius:8px;border:1px solid rgba(0,0,0,0.08);">
+      <div style="background:#fff;padding:24px;border-radius:10px;box-shadow:0 4px 10px rgba(0,0,0,0.06);text-align:left;max-width:540px;">
+        <div style="background:linear-gradient(90deg,${myColor} 0%,#a855f7 100%);height:4px;width:100%;margin-bottom:20px;border-radius:2px;"></div>
+        ${myCompany ? `<div style="color:${myColor};font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;margin-bottom:16px;font-family:sans-serif;">${myCompany}</div>` : ''}
+        <div style="color:#475569;line-height:1.8;font-family:sans-serif;font-size:15px;margin-bottom:24px;">
+          ${data.body.replace(/\n/g, '<br>')}
+        </div>
+        <div style="border-top:1px solid #f1f5f9;padding-top:16px;font-family:sans-serif;">
+          <p style="margin:0;font-weight:700;color:#0f172a;font-size:15px;">${myName}</p>
+          ${myCompany ? `<p style="margin:4px 0 0 0;color:${myColor};font-size:13px;font-weight:500;">${myCompany}</p>` : ''}
+        </div>
+      </div>
+    </div>`;
+
+  updateArrowButtons();
+}
+
+function togglePersonalise() {
+  personalise = !personalise;
+  document.getElementById('personaliseToggle').classList.toggle('on', personalise);
+  schedulePreview();
+}
+
+// ── Create campaign ───────────────────────────────────────────────────────────
+async function createCampaign() {
+  const name    = document.getElementById('campName').value.trim();
+  const subject = document.getElementById('campSubject').value.trim();
+  const body    = document.getElementById('campBody').value.trim();
+  if (!name || !subject || !body) { showError('Please fill in campaign name, subject, and body'); return; }
+  if (selectedLeads.size === 0)   { showError('Please select or add at least one lead'); return; }
+
+  const btn = document.getElementById('sendBtn');
+  btn.textContent = 'Processing…'; btn.disabled = true;
+
+  const data = await apiFetch('/campaigns/create', {
+    method: 'POST',
+    body:   JSON.stringify({
+      name, subject, body,
+      lead_ids:    Array.from(selectedLeads.keys()),
+      personalise,
+      daily_limit: parseInt(document.getElementById('dailyLimit').value) || 50,
+      send_order:  document.getElementById('sendOrder').value,
+    }),
+  });
+
+  if (data && (data.campaign_id || data.name)) {
+    showSuccess('Campaign started! Sending to ' + selectedLeads.size + ' leads.');
+    setTimeout(showList, 2000);
+  } else {
+    showError(data?.detail || 'Failed to create campaign');
+    btn.textContent = 'Send campaign →'; btn.disabled = false;
+  }
+}
+
+// ── Campaign detail ───────────────────────────────────────────────────────────
+async function loadDetail(id) {
+  const data = await apiFetch('/campaigns/' + id);
+  if (!data) return;
+
+  document.getElementById('dTotal').textContent  = data.total_leads.toLocaleString('en-IN');
+  document.getElementById('dSent').textContent   = data.sent.toLocaleString('en-IN');
+  document.getElementById('dFailed').textContent = data.failed.toLocaleString('en-IN');
+  document.getElementById('dStatus').textContent = data.status.toUpperCase();
+
+  const reasons = data.fail_reasons || {};
+  const box     = document.getElementById('failReasonsBox');
+  if (Object.keys(reasons).length) {
+    document.getElementById('failReasonsList').innerHTML =
+      Object.entries(reasons).map(([r,c]) =>
+        `<div class="fail-reason-row"><span>${r}</span><span>${c}</span></div>`
+      ).join('');
+    box.style.display = 'block';
+  } else {
+    box.style.display = 'none';
+  }
+
+  const rows = (data.leads_preview || []).map(l => {
+    const sentAt = l.sent_at ? new Date(l.sent_at).toLocaleTimeString('en-IN') : '—';
+    const sc = l.status === 'sent' ? 'var(--green)' :
+               (l.status === 'failed' || l.status === 'bounced') ? 'var(--accent2)' : 'var(--muted)';
+    return `<tr>
+      <td>${l.company_name || '—'}</td>
+      <td style="color:var(--accent)">${l.email || '—'}</td>
+      <td><span style="color:${sc}">${l.status.toUpperCase()}</span></td>
+      <td style="color:#f09595;font-size:0.78rem;">${l.error || '—'}</td>
+      <td>${sentAt}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('detailLeads').innerHTML =
+    rows || '<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--muted);">No leads yet</td></tr>';
+
+  if (data.status === 'running') {
+    setTimeout(() => {
+      if (document.getElementById('viewDetail').classList.contains('active')) loadDetail(id);
+    }, 5000);
+  }
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function showError(msg) {
+  const el = document.getElementById('errorMsg');
+  el.textContent = msg; el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 5000);
+}
+function showSuccess(msg) {
+  const el = document.getElementById('successMsg');
+  el.textContent = msg; el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 5000);
+}
+
+document.getElementById('leadSearch').addEventListener('keydown', e => {
+  if (e.key === 'Enter') searchLeads();
+});
+
+async function loadUserTemplate() {
+  const user = await getUser();
+  if (user?.ai_email_template) localStorage.setItem('sf_email_template', user.ai_email_template);
+}
+
+loadUserTemplate();
+showList();
+
+window.SF_TOKEN = localStorage.getItem('sf_token');
+window.SF_API   = API;
+
+window.ScanCard_onLoading = (isLoading) => {
+  document.getElementById('scanLoading').style.display = isLoading ? 'block' : 'none';
+};
+window.ScanCard_onError = (msg) => showError(msg);
+window.ScanCard_onSuccess = (data) => {
+  const id   = data.lead_ids[0];
+  const info = data.extracted;
+  if (!selectedLeads.has(id)) selectedLeads.set(id, { id, ...info });
+  const label = info.company_name || info.contact_name || info.email || 'New lead';
+  showSuccess(`✓ Card scanned: ${label}${data.already_existed ? ' (updated)' : ' (added)'}`);
+  updateSelectedCount();
+  schedulePreview();
+  document.querySelector('.src-tab').click();
+};
+</script>
+</body>
+</html>

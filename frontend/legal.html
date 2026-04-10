@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Legal — SalesFlow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500&family=DM+Mono:wght@400&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg: #080810;
+  --surface: #0f0f1a;
+  --border: rgba(255,255,255,0.07);
+  --accent: #7c6dfa;
+  --text: #e8e6f0;
+  --muted: #6b6880;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;line-height:1.7;padding:4rem 2rem;}
+
+/* Noise Overlay */
+body::before{
+  content:'';position:fixed;inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events:none;z-index:0;opacity:0.4;
+}
+
+.container { max-width: 800px; margin: 0 auto; position: relative; z-index: 1; }
+.nav-back { color: var(--muted); text-decoration: none; font-size: 0.9rem; margin-bottom: 2rem; display: inline-block; transition: color 0.2s; }
+.nav-back:hover { color: var(--accent); }
+
+h1 { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 3rem; letter-spacing: -0.04em; margin-bottom: 3rem; color: #fff; }
+h2 { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1.5rem; margin: 3rem 0 1rem; color: var(--accent); }
+h3 { font-size: 1.1rem; margin: 1.5rem 0 0.5rem; color: #fff; }
+
+p, li { color: var(--muted); margin-bottom: 1rem; font-size: 1rem; }
+ul { margin-left: 1.5rem; margin-bottom: 1.5rem; }
+
+.legal-box { 
+  background: var(--surface); 
+  border: 1px solid var(--border); 
+  padding: 2.5rem; 
+  border-radius: 16px; 
+  margin-bottom: 2rem;
+}
+
+.disclosure {
+  background: rgba(124,109,250,0.05);
+  border-left: 3px solid var(--accent);
+  padding: 1.5rem;
+  margin: 2rem 0;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.85rem;
+}
+
+footer { text-align: center; margin-top: 4rem; padding-top: 2rem; border-top: 1px solid var(--border); color: var(--muted); font-size: 0.8rem; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <a href="/" class="nav-back">← Back to Home</a>
+  <h1>Privacy & Terms</h1>
+
+  <div class="legal-box">
+    <h2>1. Privacy Policy</h2>
+    <p>At SalesFlow, we take your data privacy seriously. This policy explains how we handle your information when you use our AI-powered sales platform.</p>
+    
+    <h3>Information We Collect</h3>
+    <ul>
+      <li><strong>Account Information:</strong> Name, email address, and profile picture when you sign in with Google.</li>
+      <li><strong>Lead Data:</strong> Information about leads you search for or upload (CSV/PDF) to our platform.</li>
+      <li><strong>Communication Data:</strong> Email metadata and reply content required to track sales conversations.</li>
+    </ul>
+
+    <div class="disclosure">
+      <strong>Google API Disclosure:</strong><br>
+      SalesFlow’s use and transfer to any other app of information received from Google APIs will adhere to the <a href="https://developers.google.com/terms/api-services-user-data-policy" style="color:var(--accent)">Google API Services User Data Policy</a>, including the Limited Use requirements.
+    </div>
+
+    <h3>How We Use Your Data</h3>
+    <p>We use your data to provide automated sales outreach, detect lead replies, and facilitate meeting bookings. We <strong>do not sell</strong> your personal data or your lead lists to third parties.</p>
+  </div>
+
+  <div class="legal-box">
+    <h2>2. Terms of Service</h2>
+    <p>By using SalesFlow, you agree to the following terms and conditions.</p>
+
+    <h3>Acceptable Use</h3>
+    <p>You agree not to use SalesFlow for illegal spamming, phishing, or sending prohibited content. You must comply with the CAN-SPAM Act and your local marketing regulations.</p>
+
+    <h3>Limitation of Liability</h3>
+    <p>SalesFlow is provided "as is". We are not responsible for any loss of revenue, bounced emails, or account suspensions resulting from your outreach campaigns.</p>
+
+    <h3>Account Termination</h3>
+    <p>We reserve the right to suspend accounts that violate Google's Workspace policies or engage in abusive messaging behavior.</p>
+  </div>
+
+  <div class="legal-box">
+    <h2>3. Contact Us</h2>
+    <p>If you have questions about our legal terms, contact us at:</p>
+    <p style="color: #fff;">legal@salesflow.ai</p>
+  </div>
+
+  <footer>
+    © 2026 SalesFlow. All rights reserved.
+  </footer>
+</div>
+
+</body>
+</html>
