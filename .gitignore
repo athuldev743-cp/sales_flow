@@ -9,31 +9,23 @@ backend/*.pyc
 backend/*.pyo
 backend/*.pyd
 backend/.pytest_cache/
-backend/dist/
-backend/build/
 
-# ─── DATABASES & RAG (CRITICAL: Blocks the 500MB file) ───────────────────────
-# This covers the root DB and the backend DB
-*.db
-*.db-journal
-*.db-shm
-*.db-wal
-backend/chroma_store/
-
-# ─── SECRETS & CONFIG ────────────────────────────────────────────────────────
+# ─── SECRETS & CONFIG (CRITICAL) ─────────────────────────────────────────────
 # Never push your API keys (Groq, MongoDB, etc.)
 backend/.env
 .env
 
+# ─── RAG & STORAGE ───────────────────────────────────────────────────────────
+# We keep chroma_store out; the server will generate its own index from your DB
+backend/chroma_store/
+
 # ─── USER DATA / UPLOADS ─────────────────────────────────────────────────────
-# Prevents pushing client leads or excel files to GitHub
+# We block Excel/PDFs to keep the repo clean, but we ALLOW .db for LFS
 backend/*.xlsx
 backend/*.csv
 backend/*.pdf
 
 # ─── FRONTEND ────────────────────────────────────────────────────────────────
-# If you eventually use npm/next.js, these are covered
 node_modules/
 .next/
-out/
-.parcel-cache/
+dist/

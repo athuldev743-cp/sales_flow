@@ -94,7 +94,6 @@ async def process_reply(reply: dict, user: dict, db) -> dict:
     from_email = reply.get("from_email", "")
     thread_id = reply.get("thread_id", "")
     user_id = str(user["_id"])
-    autopilot = False  # default — overwritten in step 10
 
     # ── 1. Unsubscribe detection ──────────────────────────────────────────────
     def _is_unsubscribe_intent(text: str) -> bool:
@@ -112,37 +111,49 @@ async def process_reply(reply: dict, user: dict, db) -> dict:
 
     is_unsubscribe = _is_unsubscribe_intent(body)
 
+    # ── 2. Parallel: classify + fetch thread history + fetch campaign ─────────
+    # All three are independent — fire together, collect once
+    async def _fetch_thread_history():
+        return await db.replies.find(
+            {"user_id": user_id, "thread_id": thread_id}
+        ).sort("created_at", 1).to_list(30)
+
+    async def _fetch_campaign():
+        return await db.campaigns.find_one({
+            "user_id":     user_id,
+            "leads.email": from_email,
+        })
+
     if is_unsubscribe:
+        # Skip classify LLM call — result is already known
         classification_data = {
             "classification": "unsubscribe",
             "confidence":     "high",
             "summary":        "Requested removal from list",
             "hot_lead":       False,
         }
+        existing_replies, campaign = await asyncio.gather(
+            _fetch_thread_history(),
+            _fetch_campaign(),
+        )
     else:
-        classification_data = await classify_reply(body)
+        # Run all three in parallel
+        classification_data, existing_replies, campaign = await asyncio.gather(
+            classify_reply(body),
+            _fetch_thread_history(),
+            _fetch_campaign(),
+        )
 
-    # ── 2. Lead info ──────────────────────────────────────────────────────────
+    # ── 3. Lead info + status update ─────────────────────────────────────────
     lead_info = find_lead_by_email(from_email)
     if lead_info:
         new_status = "hot" if classification_data["hot_lead"] else "replied"
         update_lead_status(lead_info["id"], new_status)
 
-    # ── 3. Get original campaign body for context ─────────────────────────────
-    original_body = ""
-    campaign = await db.campaigns.find_one({
-        "user_id":     user_id,
-        "leads.email": from_email,
-    })
-    if campaign:
-        original_body = campaign.get("body", "")
+    # ── 4. Build thread history for LLM context ───────────────────────────────
+    original_body = campaign.get("body", "") if campaign else ""
 
-    # ── 4. Load FULL thread history from DB ───────────────────────────────────
     thread_history = []
-    existing_replies = await db.replies.find(
-        {"user_id": user_id, "thread_id": thread_id}
-    ).sort("created_at", 1).to_list(30)
-
     for prev in existing_replies:
         if prev.get("body"):
             thread_history.append({
@@ -155,17 +166,34 @@ async def process_reply(reply: dict, user: dict, db) -> dict:
                 "content": prev["sent_body"]
             })
 
-    # Add the current incoming message
+    # Append current incoming message
     thread_history.append({
         "role":    "user",
         "content": f"[{reply.get('from_name', 'Lead')}]: {body[:700]}"
     })
 
-    # ── 5. Duplicate send guard ───────────────────────────────────────────────
-    our_last_reply = await db.replies.find_one(
-        {"user_id": user_id, "thread_id": thread_id, "status": "sent"},
-        sort=[("sent_at", -1)]
+    # ── 5. Thread mode + duplicate-send guard (parallel) ─────────────────────
+    async def _fetch_last_sent():
+        return await db.replies.find_one(
+            {"user_id": user_id, "thread_id": thread_id, "status": "sent"},
+            sort=[("sent_at", -1)]
+        )
+
+    async def _fetch_user_settings():
+        return await db.users.find_one({"_id": ObjectId(user_id)})
+
+    # Run continue-check, last-sent lookup, and user settings in parallel
+    decision, our_last_reply, user_settings = await asyncio.gather(
+        should_continue_conversation(
+            conversation_history=thread_history,
+            classification=classification_data["classification"],
+            last_lead_message=body,
+        ),
+        _fetch_last_sent(),
+        _fetch_user_settings(),
     )
+
+    # Duplicate send guard
     recent_sent = False
     if our_last_reply and our_last_reply.get("sent_at"):
         seconds_since = (datetime.utcnow() -
@@ -174,25 +202,22 @@ async def process_reply(reply: dict, user: dict, db) -> dict:
             recent_sent = True
             logger.info(
                 f"Thread {thread_id}: skipping — replied {int(seconds_since)}s ago")
-    # ── 6. Check thread-level manual mode ────────────────────────────────────
+
+    # Thread mode from latest reply
     thread_mode = "ai"
     if existing_replies:
-        latest = existing_replies[-1]
-        thread_mode = latest.get("mode", "ai")
+        thread_mode = existing_replies[-1].get("mode", "ai")
 
-    # ── 7. Conversation continue/close decision ───────────────────────────────
-    decision = await should_continue_conversation(
-        conversation_history=thread_history,
-        classification=classification_data["classification"],
-        last_lead_message=body,
-    )
+    # Autopilot setting
+    autopilot = user_settings.get(
+        "auto_pilot", False) if user_settings else False
 
-    # ── 8. Profile context ────────────────────────────────────────────────────
+    # ── 6. Profile context ────────────────────────────────────────────────────
     profile = user.get("profile", {}) or {}
     sender_name = user.get("full_name", "")
     sender_co = profile.get("company_name", "")
 
-    # ── 9. Draft the reply ────────────────────────────────────────────────────
+    # ── 7. Draft the reply ────────────────────────────────────────────────────
     if not decision["continue"] and decision["action"] in ["confirm_and_close", "send_final_close"]:
         draft = await draft_closing_message(
             sender_name=sender_name,
@@ -217,17 +242,7 @@ async def process_reply(reply: dict, user: dict, db) -> dict:
             conversation_history=thread_history,
         )
 
-    # ── 10. Autopilot ─────────────────────────────────────────────────────────
-    user_settings = await db.users.find_one({"_id": ObjectId(user_id)})
-    autopilot = user_settings.get(
-        "auto_pilot", False) if user_settings else False
-
-    logger.info(
-        f"AUTOPILOT DEBUG | autopilot={autopilot} | recent_sent={recent_sent} | "
-        f"is_unsubscribe={is_unsubscribe} | classification={classification_data['classification']} | "
-        f"thread_mode={thread_mode} | decision={decision} | draft={bool(draft)}"
-    )
-
+    # ── 8. Autopilot send ─────────────────────────────────────────────────────
     safe_classifications = ["interested",
                             "question", "meeting_request", "other"]
     reply_status = "pending"
@@ -262,15 +277,16 @@ async def process_reply(reply: dict, user: dict, db) -> dict:
                 logger.info(
                     f"Auto-pilot sent reply to {from_email} in thread {thread_id}")
 
+                # Sync to chat session
                 try:
                     chat_session_id = f"reply_{thread_id}"
                     chat_session = await db.chat_sessions.find_one({
                         "user_id":    user_id,
                         "session_id": chat_session_id,
                     })
-                    existing_chat_history = chat_session["history"] if chat_session else [
+                    existing_chat = chat_session["history"] if chat_session else [
                     ]
-                    updated_chat_history = existing_chat_history + [
+                    updated_chat = existing_chat + [
                         {"role": "user",
                             "content": f"[Lead replied]: {body[:400]}"},
                         {"role": "assistant",
@@ -279,22 +295,19 @@ async def process_reply(reply: dict, user: dict, db) -> dict:
                     await db.chat_sessions.update_one(
                         {"user_id": user_id, "session_id": chat_session_id},
                         {"$set": {
-                            "history":    updated_chat_history[-20:],
-                            "updated_at": datetime.utcnow(),
-                        }},
+                            "history": updated_chat[-20:], "updated_at": datetime.utcnow()}},
                         upsert=True,
                     )
                 except Exception as e:
                     logger.warning(
                         f"Could not sync autopilot send to chat session: {e}")
-
             else:
                 logger.warning(
                     f"Auto-pilot send failed: {auto_result.get('error')}")
         except Exception as e:
             logger.error(f"Auto-pilot error: {e}")
 
-    # ── 11. Escalation for hot meeting requests ───────────────────────────────
+    # ── 9. Escalation for hot meeting requests (once, no duplicate) ───────────
     if classification_data["hot_lead"] and classification_data["classification"] == "meeting_request":
         await db.escalations.insert_one({
             "user_id":      user_id,
@@ -308,32 +321,23 @@ async def process_reply(reply: dict, user: dict, db) -> dict:
             "created_at":   datetime.utcnow(),
         })
 
-    
-#12
-    if classification_data["hot_lead"] and classification_data["classification"] == "meeting_request":
-         await db.escalations.insert_one({
-            "user_id":      user_id,
-            "from_email":   from_email,
-            "from_name":    reply.get("from_name"),
-            "lead_company": lead_info["company_name"] if lead_info else "",
-            "lead_id":      lead_info["id"] if lead_info else None,
-            "summary":      classification_data["summary"],
-            "channel":      "whatsapp",
-            "status":       "pending",
-            "created_at":   datetime.utcnow(),
-        })
-
-    # ── 12. Auto-create meeting if chatbot arranged one ───────────────────────
+    # ── 10. Auto-create meeting + send calendar invite email ──────────────────
     #
-    # Two triggers:
+    # Triggers:
     #   a) Lead explicitly requests a meeting  → classification == "meeting_request"
     #   b) Lead confirms a proposed time       → decision["action"] == "confirm_and_close"
+    #      (only when conversation was meeting-related, not every close)
     #
     meeting_id = None
     should_create_meeting = (
         classification_data["classification"] == "meeting_request"
-        or decision.get("action") == "confirm_and_close"
+        or (
+            decision.get("action") == "confirm_and_close"
+            # ← only meeting_request, not "interested"
+            and classification_data["classification"] == "meeting_request"
+        )
     )
+
     if should_create_meeting:
         try:
             meeting_id = await auto_create_meeting(
@@ -344,9 +348,79 @@ async def process_reply(reply: dict, user: dict, db) -> dict:
                     "thread_id":  thread_id,
                 },
             )
+
             if meeting_id:
                 logger.info(
                     f"Meeting auto-created: {meeting_id} for {from_email}")
+
+                # ── Send the actual calendar invite email to the lead ─────────
+                try:
+                    meeting_doc = await db.meetings.find_one({"_id": ObjectId(meeting_id)})
+                    scheduled_at = meeting_doc.get("scheduled_at")
+                    meeting_link = meeting_doc.get("meeting_link", "")
+                    lead_name = reply.get("from_name", "there")
+
+                    # Format the datetime nicely, e.g. "Wednesday, 16 April 2026 at 10:00 UTC"
+                    time_str = (
+                        scheduled_at.strftime("%A, %d %B %Y at %H:%M UTC")
+                        if scheduled_at else "a time we discussed"
+                    )
+
+                    invite_lines = [
+                        f"Hi {lead_name},",
+                        "",
+                        "Great news — your meeting has been confirmed! Here are the details:",
+                        "",
+                        f"  📅  Date & Time : {time_str}",
+                        f"  ⏱  Duration    : {meeting_doc.get('duration_minutes', 30)} minutes",
+                    ]
+                    if meeting_link:
+                        invite_lines.append(
+                            f"  🔗  Join Link   : {meeting_link}")
+                    invite_lines += [
+                        "",
+                        "Please add this to your calendar. "
+                        "If you need to reschedule, just reply to this email.",
+                        "",
+                        f"Looking forward to speaking with you!",
+                        "",
+                        f"Best,",
+                        sender_name,
+                        sender_co,
+                    ]
+
+                    invite_body = "\n".join(invite_lines)
+
+                    access_token_cal = await get_fresh_access_token(user, db)
+                    cal_result = await send_reply(
+                        access_token=access_token_cal,
+                        thread_id=thread_id,
+                        to_email=from_email,
+                        from_email=user.get("email"),
+                        from_name=sender_name,
+                        subject=f"📅 Meeting Confirmed: {time_str}",
+                        body=invite_body,
+                        in_reply_to_message_id=reply.get("message_id"),
+                    )
+
+                    if cal_result.get("success"):
+                        logger.info(
+                            f"Calendar invite email sent to {from_email}")
+                        # Record that the invite was dispatched on the meeting doc
+                        await db.meetings.update_one(
+                            {"_id": ObjectId(meeting_id)},
+                            {"$set": {
+                                "invite_sent":    True,
+                                "invite_sent_at": datetime.utcnow(),
+                            }}
+                        )
+                    else:
+                        logger.warning(
+                            f"Calendar invite send failed: {cal_result.get('error')}")
+
+                except Exception as e:
+                    logger.error(f"Calendar invite email error: {e}")
+
         except Exception as e:
             logger.error(f"auto_create_meeting failed: {e}")
 
@@ -373,12 +447,11 @@ async def process_reply(reply: dict, user: dict, db) -> dict:
         "should_continue":   decision["continue"],
         "close_reason":      decision.get("reason") if not decision["continue"] else None,
         "auto_pilot":        autopilot,
-        "meeting_id":        meeting_id,          # ← new field
+        "meeting_id":        meeting_id,
         "created_at":        datetime.utcnow(),
         "updated_at":        datetime.utcnow(),
         "sent_at":           datetime.utcnow() if reply_status == "sent" else None,
     }
-   
 
 # ── Background auto-sync ──────────────────────────────────────────────────────
 
