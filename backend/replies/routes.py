@@ -333,7 +333,7 @@ async def process_reply(reply: dict, user: dict, db) -> dict:
         classification_data["classification"] == "meeting_request"
         or (
             decision.get("action") == "confirm_and_close"
-            # ← only meeting_request, not "interested"
+            # removed "interested"
             and classification_data["classification"] == "meeting_request"
         )
     )

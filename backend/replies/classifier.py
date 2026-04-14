@@ -257,7 +257,8 @@ async def should_continue_conversation(
     classification:       str,
     last_lead_message:    str = "",
 ) -> dict:
-    # Hard stops — never reply to these
+
+    # Hard stops
     if classification in ["unsubscribe", "not_interested"]:
         return {"continue": False, "reason": "opted out", "action": "close"}
 
@@ -265,15 +266,48 @@ async def should_continue_conversation(
     our_turns       = [m for m in conversation_history if m.get("role") == "assistant"]
     our_reply_count = len(our_turns)
 
-    # Meeting booked signals
+    # ── FIX: only trigger on EXPLICIT meeting confirmation, not vague positivity ──
+    # These phrases must appear in the lead's message AND make sense as a direct
+    # response to a specific time offer (i.e. we must have already proposed a time)
     booked_signals = [
-        "sounds good", "let's do it", "confirmed", "booked", "works for me",
-        "see you then", "calendar", "accepted", "perfect", "done", "great",
-        "talk then", "see you", "looking forward", "i'll be there", "that works",
-        "absolutely", "yes, let's", "yes let's",
+        "confirmed",
+        "booked",
+        "see you then",
+        "accepted the invite",
+        "added to my calendar",
+        "talk then",
+        "i'll be there",
+        "that time works",
+        "that slot works",
+        "works for me",       # only keep if we offered a slot first
+        "let's do",           # tightened from "let's do it"
+        "yes, let's do",
     ]
+
+    # ── FIX: only check if we have actually proposed a time slot first ──
+    we_proposed_time = any(
+        any(phrase in (m.get("content") or "").lower()
+            for phrase in ["3pm", "4pm", "11am", "tuesday", "wednesday",
+                           "thursday", "friday", "monday", "time slot",
+                           "quick call", "which works"])
+        for m in conversation_history
+        if m.get("role") == "assistant"
+    )
+
     last_lower = last_lead_message.lower()
-    is_booked  = any(s in last_lower for s in booked_signals)
+
+    # ── FIX: require BOTH a booked signal AND that we proposed a time ──
+    is_booked = (
+        we_proposed_time
+        and any(s in last_lower for s in booked_signals)
+        # ── FIX: exclude messages that are clearly asking questions ──
+        and "?" not in last_lead_message
+        and not any(q in last_lower for q in [
+            "tell me more", "what is", "how does", "can you explain",
+            "what do you", "more about", "what are", "how much",
+            "what's your", "do you have"
+        ])
+    )
 
     if is_booked:
         return {"continue": False, "reason": "meeting booked", "action": "confirm_and_close"}
